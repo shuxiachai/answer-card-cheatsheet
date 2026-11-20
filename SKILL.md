@@ -11,12 +11,15 @@ The format was refined through repeated printing tests; the details below are wh
 
 ## Files in this skill
 
-- `scripts/build_cheatsheet.py` — Markdown master → `.docx` with the full layout (fonts, colours, columns, spacing). `python build_cheatsheet.py sheet.md [out.docx] [font_pt=5] [margin_cm=0]`
-- `scripts/export_pdf.ps1` — Word (COM) export of the `.docx` to PDF on Windows.
-- `scripts/measure_layout.py` — page count, spare or overflow lines, paragraphs with short last lines, and where given text sits (side / column / height).
+Paths are relative to this skill's directory (the base directory shown when the skill loads, written `<skill>` below); the user's files stay in their own project folder.
+
+- `scripts/check_master.py` — checks the Markdown master before building: errors the build would get wrong (uncoloured or shifted colours, unknown colour keys, Q lines pointing to missing points, broken numbering, unpaired `**`) and reminders from the format rules (missing Q line, unrecognised tag, Chinese in an English sentence, too long). Exit code 1 on errors.
+- `scripts/build_cheatsheet.py` — Markdown master → `.docx` with the full layout (fonts, colours, columns, spacing). `python build_cheatsheet.py sheet.md [out.docx] [font_pt=5] [margin_cm=0]`; it also prints warnings such as a card title without `**`.
+- `scripts/export_pdf.ps1` — Word (COM) export of the `.docx` to PDF on Windows; relative paths are fine.
+- `scripts/measure_layout.py` — page count, spare or overflow lines, paragraphs with short last lines, and where given text sits (side / column / height). Font size and margin are read from the PDF.
 - `references/format.md` — the exact Markdown syntax of every block, writing rules per question type, layout spec and colour palette. **Read it before writing any content.**
 - `references/fitting.md` — how to land on exactly two pages: measured compression ladder, trimming, filling, and pitfalls.
-- `assets/example.md` — a short real master to copy the look from.
+- `assets/example.md` — a short made-up master (Computer Networks) to copy the look from.
 
 ## Workflow
 
@@ -40,13 +43,18 @@ Follow `references/format.md` exactly: header notes (not printed), the line `## 
 
 Paraphrase lecture and exam material in your own words; never paste slide text or exam questions verbatim.
 
-### 4. Build, export, measure
+### 4. Check, build, export, measure
+
+Run these from the folder that holds the master:
 
 ```bash
-python scripts/build_cheatsheet.py sheet.md sheet.docx 5        # or 4.5 if the print test is fine
-powershell -NoProfile -ExecutionPolicy Bypass -File scripts/export_pdf.ps1 -Docx <abs path>.docx -Pdf <abs path>.pdf
-python scripts/measure_layout.py sheet.pdf --font 5 --short 0.25 --find "TCP vs UDP" "Subnetting"
+python <skill>/scripts/check_master.py sheet.md                       # fix every error; read the reminders
+python <skill>/scripts/build_cheatsheet.py sheet.md sheet.docx 5      # or 4.5 if the print test is fine
+powershell -NoProfile -ExecutionPolicy Bypass -File <skill>/scripts/export_pdf.ps1 -Docx sheet.docx -Pdf sheet.pdf
+python <skill>/scripts/measure_layout.py sheet.pdf --short 0.25 --find "TCP vs UDP" "Subnetting"
 ```
+
+`measure_layout.py` prints the font size and margin it detected on its first line; pass `--font` / `--margin-cm` only if those look wrong.
 
 The build needs `pandoc` (≥ 2.x) and `python-docx`. If `pandoc` is not on PATH, look for a bundled copy (RStudio/Quarto ship one under `…/quarto/bin/tools/`) and prepend its folder to PATH for the build only.
 
@@ -56,7 +64,8 @@ Use `references/fitting.md`. In short: overflow → first shorten paragraphs who
 
 ### 6. Verify and deliver
 
-- Every sample-exam part and review-lecture example question can be answered by copying sentences from one card; check the Q lines point to the right numbers.
+- `check_master.py` reports no errors.
+- Every sample-exam part and review-lecture example question can be answered by copying sentences from one card; check that the Q lines point to the right numbers (the script only checks that those numbers exist).
 - Re-measure after every change, and if other documents quote card locations (e.g. a sample-exam answer key "B side, column 2, middle"), update them.
 - Ask the user to **print one copy** and check legibility before the exam; small fonts read differently on paper than on screen.
 - Deliver `.md` (master — edit this, not the `.docx`), `.docx` (print this) and `.pdf` (preview). Keep the previous version when making a variant (e.g. a 4.5 pt edition) instead of overwriting it.

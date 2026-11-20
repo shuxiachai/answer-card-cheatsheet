@@ -14,6 +14,7 @@
 # <Course> Cheatsheet 答题卡（…）
 
 > Notes for the student and for future edits — NOT printed (everything before "## 答题卡" is skipped).
+> 配色: 1=W2 2=W3 B=DESIGN      ← optional: which colour each 〔topic〕 gets (see §4)
 
 ## 怎么用
 1. …
@@ -37,8 +38,9 @@ Q: Differences between TCP and UDP? → ①–⑤ · When would you use which? �
 ```
 
 - Title line: starts with `**★★★★ `, whole line bold; topic tag in 〔number name〕 (`〔A 答题〕` for the answer-method group) — the build script colours the card from this number; then Chinese name, then English title. A colour key such as `{DESIGN}` may precede the line to override.
-- Q line: `Q: ` + 1–3 likely question stems (use the sample exam / review lecture wording, paraphrased), each followed by `→` and the point numbers to copy; stems separated by ` · `; ≤ 25 words. Chinese notes may follow in （）.
-- Points: `①`…`⑦`, a space, a 2–4 character Chinese tag (定义 / 区别 / 原因 / 选择 / 例子 / 局限 …; Chinese characters only — a tag mixing in Latin letters is not recognised and stays uncoloured), a space, one complete English sentence of 15–30 words (≈ 1 mark). Official marking points first, example last or second-to-last.
+- Q line: `Q: ` + 1–3 likely question stems (use the sample exam / review lecture wording, paraphrased), each followed by `→` and the point numbers to copy (`①–⑤`, `⑥⑦`); stems separated by ` · `; ≤ 25 English words. Chinese notes may follow in （）. A card that is a tool rather than a question (e.g. a template) may use a `用法：…` line instead; it is printed the same way.
+- Points: `①`…`⑦`, a space, a tag, a space, one complete English sentence of 15–30 words (≈ 1 mark). Official marking points first, example last or second-to-last.
+- Tag: normally a 2–4 character Chinese tag (定义 / 区别 / 原因 / 选择 / 例子 / 局限 …). In a scenario/design framework card the tag is the official English sub-heading with a colon instead (`① Data Sources:`, up to three words). A tag that mixes Latin letters into Chinese (`TCP定义`) is not recognised and stays uncoloured.
 - No blank lines inside a card except around tables and code fences.
 - Length: 120–190 English words per card (syntax and scenario cards up to ≈ 1,400 characters).
 
@@ -75,7 +77,9 @@ Same shape as a mini card but one sentence (often a comparison "A …, whereas B
 
 ## 4. Colour keys and palette
 
-Line-start keys (stripped at build time): `{EXAM}` answer method, `{DESIGN}` design/scenario, `{W1}`…`{W12}` lecture week. Answer cards default by 〔topic〕: A→EXAM, 1→W2, 2→W3, 3→W4, 4→W5, 5→W6, 6→W7, 7→W8, 8→W9, 9→W10, 10→W12 (edit `TOPIC_DEFAULT` in the script for another course's numbering).
+Line-start keys (stripped at build time): `{EXAM}` answer method, `{DESIGN}` design/scenario, `{W1}`…`{W12}` lecture week. Any other `{…}` at the start of a line is printed as it is.
+
+Answer cards take their colour from the 〔topic〕 in the title: A→EXAM, 1→W2, 2→W3, 3→W4, 4→W5, 5→W6, 6→W7, 7→W8, 8→W9, 9→W10, 10→W12; any other number cycles through W1…W12 (11→W11, 13→W1). For another course, put one line in the header notes such as `配色: 1=W3 2=W5 B=DESIGN` (also accepted: `colours:`); its pairs override the defaults. A topic that is neither a number nor in that line (e.g. 〔B〕 without a mapping) gets grey, and `check_master.py` reports it.
 
 | Key | Hex | Key | Hex | Key | Hex |
 |---|---|---|---|---|---|
@@ -120,4 +124,5 @@ Everything is printed at **one size** (argument 3: default 5 pt, 4.5 pt also pri
 ## 6. Capacity and self-check
 
 - Capacity at 5 pt ≈ 4,000 non-space characters per column, ≈ 40,000 for both sides; 4.5 pt holds ≈ 20 % more.
-- Before delivering: every card has a title and Q line, numbering is continuous, every point has a Chinese tag, English sentences contain no Chinese or sources, each sample-exam part's official points are in the first points of one card, and the PDF has exactly two pages.
+- Before building, run `scripts/check_master.py`. It checks what a script can: card titles bold and coloured, colour keys known, a Q line under every answer card, point numbering continuous, every Q reference pointing to an existing point, tags recognised, no Chinese inside the English sentences, no sentence opening with It/This/They, and lengths (Q line ≤ 25 words, point ≤ 40 words, answer card ≤ 1,400, mini card ≤ 290, one-liner ≤ 400 non-space characters). Its limits are deliberately a little looser than the targets above.
+- Still check by hand: each sample-exam part's official points are in the first points of one card, the Q lines point to the *right* points, sentences contain no sources, page or quiz numbers, and the PDF has exactly two pages.

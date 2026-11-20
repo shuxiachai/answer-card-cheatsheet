@@ -8,8 +8,10 @@ A4 横向、5 栏自动分栏、页边距 0、Segoe UI + 微软雅黑 5 pt、行
 配色：每张卡按主题上色。标题条是深色底白字，
 "① 标签"、精简卡 / 二星单句的加粗标题用同一种颜色，表格表头用同色浅底。
 默认按 ★★★★ 标题里的〔主题〕配色：〔A〕EXAM、〔1〕W2、〔2〕W3、〔3〕W4、〔4〕W5、〔5〕W6、
-〔6〕W7、〔7〕W8、〔8〕W9、〔9〕W10、〔10〕W12。要换颜色，或给没有〔主题〕的精简卡 / 二星单句上色，
-就在那一行行首加 {W1}…{W12}、{EXAM} 或 {DESIGN}（排版时会删掉，不占版面）。
+〔6〕W7、〔7〕W8、〔8〕W9、〔9〕W10、〔10〕W12；其他数字按 W1…W12 循环（11 → W11，13 → W1）。
+换一门课想改对应关系，就在 "## 答题卡" 前面的说明里写一行，例如 "配色: 1=W3 2=W5 B=DESIGN"。
+要给单张卡换颜色，或给精简卡 / 二星单句上色，就在那一行行首加 {W1}…{W12}、{EXAM} 或 {DESIGN}
+（排版时会删掉，不占版面）。卡片标题要用 ** 加粗，否则标题不会着色（脚本会提示）。
 
 用法：
     python build_cheatsheet.py 你的cheatsheet.md [输出.docx] [字号，默认 5] [页边距 cm，默认 0]
@@ -60,6 +62,9 @@ PALETTE = {
 TOPIC_DEFAULT = {"A": "EXAM", "1": "W2", "2": "W3", "3": "W4", "4": "W5", "5": "W6",
                  "6": "W7", "7": "W8", "8": "W9", "9": "W10", "10": "W12"}
 COLOR_RE = re.compile(r"^\{(EXAM|DESIGN|W1[0-2]|W[1-9])\}\s*")
+CARD_RE = re.compile(r"^(\*\*)?(★★★★|★★★ |★★ )")      # 卡片标题行（★★★★ 答题卡 / ★★★ 精简卡 / ★★ 单句）
+MAP_RE = re.compile(r"^>?\s*(?:配色|colou?rs?)\s*[:：]\s*(.+)$", re.I)
+MAP_PAIR_RE = re.compile(r"(\w+)\s*=\s*(EXAM|DESIGN|W1[0-2]|W[1-9])\b")
 WHITE = RGBColor(0xFF, 0xFF, 0xFF)
 
 
@@ -69,9 +74,24 @@ def tint(hexc, f=0.14):
     return "".join("%02X" % round(255 - (255 - c) * f) for c in rgb)
 
 
-text = "\n" + src.read_text(encoding="utf-8")
+text = "\n" + src.read_text(encoding="utf-8").replace("\r\n", "\n")
+line_offset = 0
 if "\n## 答题卡\n" in text:
-    text = text.split("\n## 答题卡\n", 1)[1]
+    header, text = text.split("\n## 答题卡\n", 1)
+    line_offset = header.count("\n") + 2          # 用来在提示里报 .md 的行号
+    for hl in header.split("\n"):                  # 说明里的 "配色: 1=W3 2=W5 …" 覆盖默认的主题配色
+        hm = MAP_RE.match(hl.strip())
+        if hm:
+            TOPIC_DEFAULT.update(dict(MAP_PAIR_RE.findall(hm.group(1))))
+warnings = []
+
+
+def topic_color(topic):
+    if topic in TOPIC_DEFAULT:
+        return TOPIC_DEFAULT[topic]
+    if topic.isdigit() and int(topic) > 0:
+        return f"W{(int(topic) - 1) % 12 + 1}"
+    return None
 
 
 def split_cells(row):
@@ -85,7 +105,7 @@ def disp_width(s):
 
 # ---- 1. 颜色标记：删掉行首的 {W9} 等，按卡片顺序记下每张卡的颜色 ------------------------------------
 lines, card_colors, fence = [], [], False
-for line in text.split("\n"):
+for ln, line in enumerate(text.split("\n"), start=line_offset):
     if line.startswith("```"):
         fence = not fence
     elif not fence:
@@ -93,10 +113,17 @@ for line in text.split("\n"):
         key = None
         if m:
             key, line = m.group(1), line[m.end():]
-        if line.startswith(("**★★★★", "**★★★ ", "**★★ ")):
-            if key is None and line.startswith("**★★★★"):
+        elif re.match(r"^\{[^}]*\}", line):
+            warnings.append(f"第 {ln} 行：不认识的颜色键 {line.split('}')[0]}}}，会原样印出来")
+        cm = CARD_RE.match(line)
+        if cm:
+            if not cm.group(1):
+                warnings.append(f"第 {ln} 行：卡片标题没有用 ** 加粗，标题不会着色：{line[:30]}")
+            if key is None and cm.group(2) == "★★★★":
                 tm = re.search(r"〔(\w+)", line)
-                key = TOPIC_DEFAULT.get(tm.group(1)) if tm else None
+                key = topic_color(tm.group(1)) if tm else None
+                if key is None:
+                    warnings.append(f"第 {ln} 行：答题卡没有〔主题〕或主题配不上颜色，会用灰色：{line[:30]}")
             card_colors.append(key)
     lines.append(line)
 
@@ -211,7 +238,7 @@ def shade(el_pr, fill):
 
 # ---- 6. 段落：标题、Q 行、要点、精简卡、代码（按卡片配色） --------------------------------------------
 TAG_RE = re.compile(r"^([" + CIRCLED + r"]\s*(?:[^\sA-Za-z(\[`]+|[A-Z][A-Za-z]*(?: [A-Za-z]+){0,2}:)\s)")
-state = {"hue": None}
+state = {"hue": None, "cards": 0}
 card_iter = iter(card_colors)
 
 
@@ -239,9 +266,16 @@ def format_paragraph(p):
     pf.line_spacing = LINE
     pf.widow_control = False
     p.alignment = WD_ALIGN_PARAGRAPH.LEFT
+    if p.style is not None and p.style.name == "Source Code":
+        shade(p._p.get_or_add_pPr(), GREY_CODE)
+        pf.keep_together = True                     # 整个代码块放在同一栏，不拆开
+        for r in p.runs:                            # pandoc 给代码块里的字也套了行内代码样式（窄体），改回等宽
+            r.font.name = MONO
+        return                                      # 代码里的 ★ / Q: / ① 不当作卡片处理
     t = p.text
     if t.startswith(("★★★★", "★★★ ", "★★ ")):     # 新的一张卡：换成它的颜色；行首星号不印
         state["hue"] = PALETTE.get(next(card_iter, None))
+        state["cards"] += 1
         strip_stars(p)
     hue = state["hue"]
     if t.startswith("★★★★"):                      # 答题卡标题：主题色底白字、与下段同页
@@ -283,11 +317,6 @@ def format_paragraph(p):
             tag_run.font.bold = True
             if hue:
                 tag_run.font.color.rgb = RGBColor.from_string(hue)
-    if p.style is not None and p.style.name == "Source Code":
-        shade(p._p.get_or_add_pPr(), GREY_CODE)
-        pf.keep_together = True                     # 整个代码块放在同一栏，不拆开
-        for r in p.runs:                            # pandoc 给代码块里的字也套了行内代码样式（窄体），改回等宽
-            r.font.name = MONO
 
 
 # ---- 7. 表格：100% 宽、细灰框、紧凑边距、表头用主题色浅底 + 主题色加粗字 -----------------------------------
@@ -348,10 +377,15 @@ for el in list(doc.element.body.iterchildren()):
     elif el in tables:
         format_table(tables[el])
 
+if state["cards"] != len(card_colors):
+    warnings.append(f"识别到的卡片数对不上（Markdown {len(card_colors)} 张，Word {state['cards']} 张），颜色可能错位")
+
 doc.save(str(out))
 with zipfile.ZipFile(out) as z:                      # 去掉 ZIP 目录项（云盘协同编辑时 Word 可能拒绝打开）
     items = [(zi, z.read(zi.filename)) for zi in z.infolist() if not zi.filename.endswith("/")]
 with zipfile.ZipFile(out, "w", zipfile.ZIP_DEFLATED) as z:
     for zi, data in items:
         z.writestr(zi, data)
-print(f"已生成：{out}（{len(doc.paragraphs)} 段，{len(doc.tables)} 个表格）。用 Word 打开后导出 PDF，确认正好两页。")
+print(f"已生成：{out}（{len(card_colors)} 张卡，{len(doc.paragraphs)} 段，{len(doc.tables)} 个表格）。用 Word 打开后导出 PDF，确认正好两页。")
+for w in warnings:
+    print("注意：" + w)
