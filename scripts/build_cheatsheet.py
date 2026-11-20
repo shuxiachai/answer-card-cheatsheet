@@ -17,6 +17,8 @@ A4 横向、5 栏自动分栏、页边距 0、Segoe UI + 微软雅黑 5 pt、行
     python build_cheatsheet.py 你的cheatsheet.md [输出.docx] [字号，默认 5] [页边距 cm，默认 0]
 （打印机印不到纸边的话，页边距写 0.5。）
 需要：pandoc（命令行能运行 pandoc）和 python-docx（pip install python-docx）。
+图片：单独一行写 ![60%](图.png)，路径相对于 .md 所在的文件夹；方括号里的百分比是占栏宽的比例（不写就是 100%）。
+图片段落用单倍行距（固定行距会把图裁成一行高），整张图放在同一栏。
 如果 .md 里有一行 "## 答题卡"，只排这一行之后的内容（前面可以放说明文字）。
 排完用 Word 打开，导出 PDF，确认正好两页。
 """
@@ -35,10 +37,12 @@ from docx.enum.section import WD_ORIENT
 from docx.enum.text import WD_ALIGN_PARAGRAPH, WD_LINE_SPACING
 from docx.oxml import OxmlElement
 from docx.oxml.ns import qn
-from docx.shared import Cm, Pt, RGBColor
+from docx.shape import InlineShape
+from docx.shared import Cm, Emu, Pt, RGBColor
 from docx.text.run import Run
 
 sys.stdout.reconfigure(encoding="utf-8")
+sys.stderr.reconfigure(encoding="utf-8")
 if len(sys.argv) < 2:
     sys.exit(__doc__)
 if shutil.which("pandoc") is None:
@@ -104,11 +108,18 @@ def disp_width(s):
 
 
 # ---- 1. 颜色标记：删掉行首的 {W9} 等，按卡片顺序记下每张卡的颜色 ------------------------------------
-lines, card_colors, fence = [], [], False
+IMG_RE = re.compile(r"!\[([^\]]*)\]\(\s*<?([^)>\s]+)>?(?:\s+\"[^\"]*\")?\s*\)")
+lines, card_colors, fence, missing = [], [], False, []
 for ln, line in enumerate(text.split("\n"), start=line_offset):
     if line.startswith("```"):
         fence = not fence
     elif not fence:
+        for im in IMG_RE.finditer(line):            # 图片文件要在 .md 所在的文件夹里能找到
+            ref = im.group(2)
+            if re.match(r"^[a-z][a-z0-9+.\-]*://", ref, re.I):
+                missing.append(f"第 {ln} 行：{ref}（只支持本地图片文件）")
+            elif not (src.parent / ref).is_file():
+                missing.append(f"第 {ln} 行：{ref}")
         m = COLOR_RE.match(line)
         key = None
         if m:
@@ -126,6 +137,8 @@ for ln, line in enumerate(text.split("\n"), start=line_offset):
                     warnings.append(f"第 {ln} 行：答题卡没有〔主题〕或主题配不上颜色，会用灰色：{line[:30]}")
             card_colors.append(key)
     lines.append(line)
+if missing:
+    sys.exit("找不到图片（路径相对于 .md 所在的文件夹）：\n  " + "\n  ".join(missing))
 
 # ---- 2. 每一行单独成段；表格分隔行按内容宽度分配列宽 ------------------------------------------
 md, i, in_code = [], 0, False
@@ -170,7 +183,12 @@ with tempfile.TemporaryDirectory() as tmp:
     tmp_md, raw = Path(tmp) / "cards.md", Path(tmp) / "raw.docx"
     tmp_md.write_text("\n".join(md), encoding="utf-8", newline="\n")
     # ---- 3. pandoc --------------------------------------------------------------------------------
-    subprocess.run(["pandoc", str(tmp_md), "-f", "gfm", "-t", "docx", "--columns=10", "-o", str(raw)], check=True)
+    res = subprocess.run(["pandoc", str(tmp_md), "-f", "gfm", "-t", "docx", "--columns=10",
+                          f"--resource-path={src.resolve().parent}", "-o", str(raw)],   # 图片按 .md 所在文件夹找
+                         capture_output=True, encoding="utf-8", errors="replace")
+    if res.returncode != 0:
+        sys.exit("pandoc 出错：\n" + res.stderr)
+    warnings += ["pandoc：" + w.strip() for w in res.stderr.splitlines() if w.strip()]
     doc = Document(str(raw))
 
 # ---- 4. 页面：A4 横向、页边距（默认 0）、5 栏 + 分隔线 ------------------------------------------------
@@ -188,6 +206,7 @@ cols.set(qn("w:num"), "5")
 cols.set(qn("w:space"), "57")       # 栏间距 0.1 cm
 cols.set(qn("w:sep"), "1")          # 分隔线
 sectPr.append(cols)
+COL_EMU = (sec.page_width - sec.left_margin - sec.right_margin - 4 * 57 * 635) // 5   # 一栏宽（1 twip = 635 EMU）
 
 
 # ---- 5. 字体、字号、行距 -------------------------------------------------------------------------
@@ -266,6 +285,18 @@ def format_paragraph(p):
     pf.line_spacing = LINE
     pf.widow_control = False
     p.alignment = WD_ALIGN_PARAGRAPH.LEFT
+    inlines = p._p.xpath(".//wp:inline")
+    if inlines:                                     # 图片：固定行距会把图裁成一行高，改单倍行距；缩放到栏宽的百分比
+        pf.line_spacing_rule = WD_LINE_SPACING.SINGLE
+        pf.keep_together = True
+        for el in inlines:
+            shape = InlineShape(el)
+            pm = re.match(r"\s*(\d{1,3})\s*%", el.docPr.get("descr") or "")
+            pct = min(100, max(10, int(pm.group(1)))) / 100 if pm else 1.0
+            w = int(COL_EMU * pct)
+            h = int(shape.height * w / shape.width) if shape.width else shape.height
+            shape.width, shape.height = Emu(w), Emu(h)
+        return
     if p.style is not None and p.style.name == "Source Code":
         shade(p._p.get_or_add_pPr(), GREY_CODE)
         pf.keep_together = True                     # 整个代码块放在同一栏，不拆开

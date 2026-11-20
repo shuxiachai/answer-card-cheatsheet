@@ -13,10 +13,10 @@ The format was refined through repeated printing tests; the details below are wh
 
 Paths are relative to this skill's directory (the base directory shown when the skill loads, written `<skill>` below); the user's files stay in their own project folder.
 
-- `scripts/check_master.py` — checks the Markdown master before building: errors the build would get wrong (uncoloured or shifted colours, unknown colour keys, Q lines pointing to missing points, broken numbering, unpaired `**`) and reminders from the format rules (missing Q line, unrecognised tag, Chinese in an English sentence, too long). Exit code 1 on errors.
-- `scripts/build_cheatsheet.py` — Markdown master → `.docx` with the full layout (fonts, colours, columns, spacing). `python build_cheatsheet.py sheet.md [out.docx] [font_pt=5] [margin_cm=0]`; it also prints warnings such as a card title without `**`.
+- `scripts/check_master.py` — checks the Markdown master before building: errors the build would get wrong (uncoloured or shifted colours, unknown colour keys, Q lines pointing to missing points, broken numbering, unpaired `**`) and reminders from the format rules (missing Q line, unrecognised tag, Chinese in an English sentence, too long), plus each figure's height in lines and minimum label size. Exit code 1 on errors.
+- `scripts/build_cheatsheet.py` — Markdown master → `.docx` with the full layout (fonts, colours, columns, spacing). `python build_cheatsheet.py sheet.md [out.docx] [font_pt=5] [margin_cm=0]`; it also prints warnings such as a card title without `**`. Figures (`![60%](fig.png)` on their own line) are scaled to the column.
 - `scripts/export_pdf.ps1` — Word (COM) export of the `.docx` to PDF on Windows; relative paths are fine.
-- `scripts/measure_layout.py` — page count, spare or overflow lines, paragraphs with short last lines, and where given text sits (side / column / height). Font size and margin are read from the PDF.
+- `scripts/measure_layout.py` — page count, spare or overflow lines, paragraphs with short last lines, and where given text sits (side / column / height). Font size and margin are read from the PDF; figures count towards the column height.
 - `references/format.md` — the exact Markdown syntax of every block, writing rules per question type, layout spec and colour palette. **Read it before writing any content.**
 - `references/fitting.md` — how to land on exactly two pages: measured compression ladder, trimming, filling, and pitfalls.
 - `assets/example.md` — a short made-up master (Computer Networks) to copy the look from.
@@ -40,6 +40,8 @@ Keep a gap list (what is not on the sheet, with lecture/page and importance) —
 ### 3. Write the master
 
 Follow `references/format.md` exactly: header notes (not printed), the line `## 答题卡`, then blocks **grouped by topic** in lecture order — first the answer-method group, then for each topic its answer cards → mini cards → one-liners. Every mini card and one-liner starts with a colour key such as `{W9}`; answer cards take their colour from the 〔topic〕 in the title. Sentences are complete English sentences (the review lecture asks for them), self-contained (no "It/This" pointing back), with code in backticks.
+
+Draw diagrams as text (a code block with ├─ └─, a line of arrows, a table); add an image only when the shape itself is the answer, and weigh its cost in lines (`references/format.md` → Figures).
 
 Paraphrase lecture and exam material in your own words; never paste slide text or exam questions verbatim.
 

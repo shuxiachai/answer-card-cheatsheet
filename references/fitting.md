@@ -30,9 +30,12 @@ Moves that did **not** pay off: letter spacing −0.1 pt (crowded on paper), Ari
 
 Swap, do not squeeze: remove one-liners that the review lecture does not name, no quiz asked about and no Summary page mentions, and put the higher-priority gaps in their place. Merging a gap into an existing card or one-liner usually costs ~1 line, a new one-liner 2–4 lines.
 
+A figure is the most expensive block (≈ 4.8 lines per cm at 5 pt): before cutting points, shrink it (`![70%](…)`) or replace it with a text diagram.
+
 ## Pitfalls seen in practice
 
 - Word COM: querying `Styles`/`Paragraphs` before export once hung Word for minutes — make edits in python-docx and use COM only to open, export and close (≈ 3–5 s per file).
+- Exact line height crops an inline image to a single line; the build script gives figure paragraphs single line height, but images inside tables or next to text are not handled.
 - A PDF open in a viewer cannot be overwritten ("Device or resource busy") — ask the user to close it.
 - pandoc puts the inline-code character style on code-block runs too; the build script resets those runs to Consolas and keeps the block in one column.
 - Long inline code without spaces wraps badly; add spaces inside JSON/XML examples.

@@ -1,8 +1,9 @@
 """Measure a 5-column cheatsheet PDF built by build_cheatsheet.py.
 
 Usage: python measure_layout.py sheet.pdf [--font PT] [--margin-cm CM] [--gap-cm 0.1] [--short 0.25] [--find TEXT ...]
-Prints: page count; spare lines at the end (or overflow onto page 3+); paragraphs whose last printed line is
-less than --short of the column width (cheapest places to save a line); where each --find text sits.
+Prints: page count; spare lines at the end (or overflow onto page 3+), counting figures as well as text;
+paragraphs whose last printed line is less than --short of the column width (cheapest places to save a line);
+where each --find text sits.
 --font and --margin-cm are read from the PDF when omitted (the most common text size, and the left edge of
 the text); give them explicitly only if the detected values printed on the first line look wrong.
 """
@@ -13,6 +14,7 @@ import sys
 import fitz  # PyMuPDF
 
 sys.stdout.reconfigure(encoding="utf-8")
+sys.stderr.reconfigure(encoding="utf-8")
 ap = argparse.ArgumentParser()
 ap.add_argument("pdf")
 ap.add_argument("--font", type=float, default=None, help="font size in pt (default: detected)")
@@ -64,6 +66,10 @@ for pno, page in enumerate(doc):
         for k in sorted(r):
             bar = any(bb.x0 >= cx0 - 2 and bb.x0 < cx0 + colw and bb.y0 - 1 <= k <= bb.y1 + 1 for bb in bars)
             rows.append((pno, c, k, *r[k], bar))
+    for im in page.get_image_info():        # figures take column height too
+        x0, y0, x1, y1 = im["bbox"]
+        c = max(0, min(4, int((x0 - m + 1) // (colw + gap))))
+        bottoms[(pno, c)] = max(bottoms.get((pno, c), 0), min(y1, H - m))
 
 last = max(bottoms)
 if len(doc) > 2:

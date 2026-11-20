@@ -2,7 +2,7 @@
 
 ## Contents
 1. File layout
-2. Block syntax (answer card, mini card, one-liner, tables, code)
+2. Block syntax (answer card, mini card, one-liner, tables, code, figures)
 3. Writing rules per question type
 4. Colour keys and palette
 5. Printed layout (what the build script does)
@@ -65,6 +65,29 @@ Same shape as a mini card but one sentence (often a comparison "A …, whereas B
 - Syntax cards (selectors, query operators) may end with a compact GFM table (≤ 3 columns, ≤ 12 rows), with a blank line before and after.
 - Fenced code blocks (``` … ```) for multi-line examples (e.g. HTML + its DOM tree drawn with ├─ └─). The build script keeps a code block in one column and in monospace.
 
+### Figures
+
+Draw it as text first. A figure costs ≈ 4.8 lines per cm of height at 5 pt; a full-column figure with a 2 : 1 aspect ratio is ≈ 2.9 cm ≈ 14 lines, the space of 3–4 one-liners. Text diagrams are also searchable and easy to copy.
+
+| Shape | Text version |
+|---|---|
+| Tree / hierarchy (DOM, nested JSON) | code block drawn with ├─ └─ |
+| Flow / architecture | one line `A → B → C`, or a small code block |
+| Comparison | table |
+| Schema (star schema, ER) | code block listing each table with its keys |
+
+Use an image only when the shape itself is the answer (spatial relations, chart types, an architecture you must redraw by hand):
+
+```
+![60%](figures/star-schema.png)
+```
+
+- Put it on its own line, inside the card it belongs to, after the points (like a table), and point the Q line at it (`→ ③, figure`).
+- The number in `[ ]` is the width as a percentage of the column (10–100 %, default 100 %); the height follows the aspect ratio. The path is relative to the master's folder; web URLs are not supported. Use PNG or JPG.
+- Redraw rather than screenshot when you can: black line art on white, thick lines, no colours that must be told apart in greyscale. Labels must still be ≥ 5 pt after scaling: at 100 % of the column their height needs ≈ 1/33 of the image width in pixels (900 px wide → ≥ 27 px), at 60 % ≈ 1/20. `check_master.py` prints the height in lines and the minimum label size for every image.
+- Not inside tables, and not on a line with text: cell text uses exact line height, which crops images.
+- Slide and textbook figures are someone else's work: keep them in your private sheet, never in a public repository.
+
 ## 3. Writing rules per question type
 
 - **Compare A and B**: ① define A; ② define B; ③–⑤ one dimension each as "A …, whereas B …"; ⑥ "Use A when …; use B when …, e.g. …". (The review lecture's advice: define each in one sentence, then compare.)
@@ -98,6 +121,7 @@ Tint (table header fill) = 14 % of the colour mixed with white.
 - The card title and the Q line are kept with the next paragraph; a code block is kept in one column.
 - Hanging indent: points ≈ 1.05 × size; mini cards and one-liners ≈ 1.6 × size.
 - Tables: 100 % width, 0.25 pt grey (808080) borders, ≈ 0.05 cm cell padding.
+- Figures: their own paragraph with single line height (exact line height would crop them to one line), scaled to the given percentage of the column width, never split across columns.
 
 ### Font and style table 字体样式表
 
@@ -116,6 +140,7 @@ Everything is printed at **one size** (argument 3: default 5 pt, 4.5 pt also pri
 | Table cells 表格内容 | other rows | Segoe UI | 微软雅黑 | regular | black | none |
 | Inline code 行内代码 | `` `…` `` | Arial Narrow | 微软雅黑 | regular | black | none |
 | Code block 代码块 | fenced block | Consolas | 微软雅黑 | regular | black | light grey F2F2F2 |
+| Figure 图片 | `![60%](fig.png)` | – | – | – | – | none (scaled to 60 % of the column, single line height) |
 
 - A card without a colour gets a light-grey (E2E2E2) title bar and table header, with black text.
 - Why these fonts: Segoe UI is about as compact as condensed Arial but its letters stay distinct at 4.5–5 pt; Arial Narrow keeps long inline code short; Consolas is monospaced, which DOM trees and aligned code need.
@@ -124,5 +149,5 @@ Everything is printed at **one size** (argument 3: default 5 pt, 4.5 pt also pri
 ## 6. Capacity and self-check
 
 - Capacity at 5 pt ≈ 4,000 non-space characters per column, ≈ 40,000 for both sides; 4.5 pt holds ≈ 20 % more.
-- Before building, run `scripts/check_master.py`. It checks what a script can: card titles bold and coloured, colour keys known, a Q line under every answer card, point numbering continuous, every Q reference pointing to an existing point, tags recognised, no Chinese inside the English sentences, no sentence opening with It/This/They, and lengths (Q line ≤ 25 words, point ≤ 40 words, answer card ≤ 1,400, mini card ≤ 290, one-liner ≤ 400 non-space characters). Its limits are deliberately a little looser than the targets above.
+- Before building, run `scripts/check_master.py`. It checks what a script can: card titles bold and coloured, colour keys known, a Q line under every answer card, point numbering continuous, every Q reference pointing to an existing point, tags recognised, no Chinese inside the English sentences, no sentence opening with It/This/They, image files present (with each figure's height in lines), and lengths (Q line ≤ 25 words, point ≤ 40 words, answer card ≤ 1,400, mini card ≤ 290, one-liner ≤ 400 non-space characters). Its limits are deliberately a little looser than the targets above.
 - Still check by hand: each sample-exam part's official points are in the first points of one card, the Q lines point to the *right* points, sentences contain no sources, page or quiz numbers, and the PDF has exactly two pages.

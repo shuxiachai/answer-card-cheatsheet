@@ -4,6 +4,7 @@
     python check_master.py 你的cheatsheet.md
 「错误」是排出来会出问题的地方（颜色错位、颜色键原样印出、Q 行指向不存在的要点……），必须改；
 「提醒」是 references/format.md 里的写法规则（缺 Q 行、标签不会着色、英文句子里混了中文、太长……），看情况改。
+「图片」列出每张图按栏宽缩放后大约占几行，以及图里的字至少要多大（按页边距 0 估算）。
 有错误时退出码为 1。
 """
 import re
@@ -11,6 +12,7 @@ import sys
 from pathlib import Path
 
 sys.stdout.reconfigure(encoding="utf-8")
+sys.stderr.reconfigure(encoding="utf-8")
 if len(sys.argv) != 2:
     sys.exit(__doc__)
 
@@ -25,11 +27,14 @@ TOPICS = {"A": "EXAM", "1": "W2", "2": "W3", "3": "W4", "4": "W5", "5": "W6",
           "6": "W7", "7": "W8", "8": "W9", "9": "W10", "10": "W12"}
 CJK = re.compile(r"[㐀-鿿豈-﫿]")
 RANGE_RE = re.compile(r"([" + CIRCLED + r"])\s*[–—\-~～]\s*([" + CIRCLED + r"])")
+IMG_RE = re.compile(r"!\[([^\]]*)\]\(\s*<?([^)>\s]+)>?(?:\s+\"[^\"]*\")?\s*\)")
 
+COL_CM = (29.7 - 4 * 57 / 567) / 5          # 页边距 0 时的一栏宽（栏间距 57 twip）
 LIMITS = {"q_words": 25, "point_words": 40, "card_chars": 1400, "mini_chars": 290, "oneliner_chars": 400}
 
-text = "\n" + Path(sys.argv[1]).read_text(encoding="utf-8").replace("\r\n", "\n")
-errors, notes = [], []
+src = Path(sys.argv[1])
+text = "\n" + src.read_text(encoding="utf-8").replace("\r\n", "\n")
+errors, notes, infos = [], [], []
 offset = 0
 if "\n## 答题卡\n" in text:
     header, text = text.split("\n## 答题卡\n", 1)
@@ -58,6 +63,49 @@ def plain(s):
 def words(s):
     """英文词数：不算圈号、箭头、中文和（）里的注释。"""
     return len(re.findall(r"[A-Za-z0-9][A-Za-z0-9'’.\-]*", re.sub(r"（[^）]*）", " ", plain(s))))
+
+
+def image_size(path):
+    """图片的像素宽高；读不出来就返回 None（需要 PyMuPDF 或 Pillow）。"""
+    try:
+        import fitz
+        pix = fitz.Pixmap(str(path))
+        return pix.width, pix.height
+    except Exception:
+        pass
+    try:
+        from PIL import Image
+        with Image.open(path) as im:
+            return im.size
+    except Exception:
+        return None
+
+
+def check_image(ln, im):
+    alt, ref = im.group(1), im.group(2)
+    if re.match(r"^[a-z][a-z0-9+.\-]*://", ref, re.I):
+        errors.append((ln, f"只支持本地图片文件：{ref}"))
+        return
+    path = src.resolve().parent / ref
+    if not path.is_file():
+        errors.append((ln, f"找不到图片 {ref}（路径相对于 .md 所在的文件夹）"))
+        return
+    if path.suffix.lower() not in (".png", ".jpg", ".jpeg"):
+        notes.append((ln, f"图片最好用 PNG 或 JPG：{ref}"))
+    pm = re.match(r"\s*(\d{1,3})\s*%", alt)
+    pct = int(pm.group(1)) if pm else 100
+    if not 10 <= pct <= 100:
+        notes.append((ln, f"图片宽度 {pct}% 不在 10%–100% 之间，会按 {min(100, max(10, pct))}% 排：{ref}"))
+        pct = min(100, max(10, pct))
+    size = image_size(path)
+    if not size:
+        infos.append((ln, f"{ref}：占栏宽 {pct}%（读不出像素尺寸，没法估算高度）"))
+        return
+    w, h = size
+    h_cm = COL_CM * pct / 100 * h / w
+    min_px = 5 * w / (COL_CM * pct / 100 / 2.54 * 72)
+    infos.append((ln, f"{ref}：占栏宽 {pct}%，约 {h_cm:.1f} cm 高 ≈ {h_cm * 28.35 / 5.9:.0f} 行（5 pt）/ "
+                      f"{h_cm * 28.35 / 5.31:.0f} 行（4.5 pt）；图里的字至少 {min_px:.0f} 像素高才不比 5 pt 正文小"))
 
 
 def nonspace(s):
@@ -104,7 +152,16 @@ for ln, raw in enumerate(text.split("\n"), start=offset):
     if fence or raw.startswith("|") or not raw.strip():
         if card is not None and raw.strip():
             card["chars"] += nonspace(raw)
+        if raw.startswith("|") and IMG_RE.search(raw):
+            notes.append((ln, "表格里的图片不会缩放，固定行距还会把图裁掉；把图单独放一行"))
         continue
+    imgs = list(IMG_RE.finditer(raw))
+    for im in imgs:
+        check_image(ln, im)
+    if imgs and not IMG_RE.sub("", raw).strip():
+        continue
+    if imgs:
+        notes.append((ln, "图片最好单独占一行（和文字写在一起，整段都会变成单倍行距）"))
     line, key = raw, None
     m = COLOR_RE.match(line)
     if m:
@@ -180,8 +237,8 @@ for ln, raw in enumerate(text.split("\n"), start=offset):
 close_card()
 
 print(f"答题卡 {counts['★★★★']} 张，精简卡 {counts['★★★ ']} 张，二星单句 {counts['★★ ']} 条；"
-      f"错误 {len(errors)} 条，提醒 {len(notes)} 条")
-for label, items in (("错误", errors), ("提醒", notes)):
+      f"图片 {len(infos)} 张；错误 {len(errors)} 条，提醒 {len(notes)} 条")
+for label, items in (("错误", errors), ("提醒", notes), ("图片", infos)):
     for ln, msg in sorted(items):
         print(f"  [{label}] 第 {ln} 行：{msg}" if ln else f"  [{label}] {msg}")
 sys.exit(1 if errors else 0)
