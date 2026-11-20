@@ -13,12 +13,12 @@ The format was refined through repeated printing tests; the details below are wh
 
 Paths are relative to this skill's directory (the base directory shown when the skill loads, written `<skill>` below); the user's files stay in their own project folder.
 
-- `scripts/check_master.py` — checks the Markdown master before building: errors the build would get wrong (uncoloured or shifted colours, unknown colour keys, Q lines pointing to missing points, broken numbering, unpaired `**`) and reminders from the format rules (missing Q line, unrecognised tag, Chinese in an English sentence, too long), plus each figure's height in lines and minimum label size. Exit code 1 on errors.
+- `scripts/check_master.py` — checks the Markdown master before building: errors the build would get wrong (uncoloured or shifted colours, unknown colour keys, Q lines pointing to missing points, broken numbering, unpaired `**`) and reminders from the format rules (missing Q line, unrecognised tag, Chinese in an English sentence, too long), plus each figure's height in lines and minimum label size at the size given with `--font` (default 5). Exit code 1 on errors.
 - `scripts/build_cheatsheet.py` — Markdown master → `.docx` with the full layout (fonts, colours, columns, spacing). `python build_cheatsheet.py sheet.md [out.docx] [font_pt=5] [margin_cm=0]`; it also prints warnings such as a card title without `**`. Figures (`![60%](fig.png)` on their own line) are scaled to the column.
 - `scripts/export_pdf.ps1` — Word (COM) export of the `.docx` to PDF on Windows; relative paths are fine.
-- `scripts/measure_layout.py` — page count, spare or overflow lines, paragraphs with short last lines, and where given text sits (side / column / height). Font size and margin are read from the PDF; figures count towards the column height.
+- `scripts/measure_layout.py` — page count, spare or overflow lines (figures included), columns that end early because the next kept-together block was pushed on, paragraphs with short last lines (`pt` = answer-card point; `--no-points` hides them), where given text sits (`--find`), and every line of a paragraph with its fill (`--lines`). When the content fills far less than two sides it suggests a font size. Font size and margin are read from the PDF.
 - `references/format.md` — the exact Markdown syntax of every block, writing rules per question type, layout spec and colour palette. **Read it before writing any content.**
-- `references/fitting.md` — how to land on exactly two pages: measured compression ladder, trimming, filling, and pitfalls.
+- `references/fitting.md` — how to land on two pages: reading the measure output, column-bottom gaps, the measured compression ladder, too little content, trimming, and pitfalls.
 - `assets/example.md` — a short made-up master (Computer Networks) to copy the look from.
 
 ## Workflow
@@ -31,15 +31,16 @@ When there are many lecture PDFs, extract the text with PyMuPDF and split the re
 
 ### 2. Decide tiers
 
-- **★★★★ answer card** — every sample-exam question, every example question in the review lecture, plus answer-method cards (a scenario/design-question framework whose points start with the official sub-headings; a tool menu; a format-description template). 4–7 sentences, each ≈ 1 mark.
+- **★★★★ answer card** — every sample-exam question and every example question in the review lecture. A comparison or calculation that a Summary page names also gets one when space allows. 4–7 sentences, each ≈ 1 mark.
+- **Answer-method group** (first on the sheet) — only for question types this exam actually has: a scenario/design-question framework whose points start with the official sub-headings, a tool menu, a format-description template. If the exam has none of these, keep a single `{EXAM}` mini card with the review lecture's answering advice, or leave the group out.
 - **★★★ mini card** — every topic the review lecture names that has no card yet; 1–2 sentences.
 - **★★ one-liner** — Summary-page points, quiz facts, typical MCQ traps, and **code templates** for variant code questions (SQL with WHERE/GROUP BY/HAVING, DDL with keys, the course's library calls). One sentence, sometimes with inline code.
 
-Keep a gap list (what is not on the sheet, with lecture/page and importance) — it is what you fill from when space frees up and what you swap against when it does not.
+Keep a gap list (what is not on the sheet, with lecture/page and importance) in the master's header notes, which are not printed. It is what you fill from when space frees up and what you swap against when it does not.
 
 ### 3. Write the master
 
-Follow `references/format.md` exactly: header notes (not printed), the line `## 答题卡`, then blocks **grouped by topic** in lecture order — first the answer-method group, then for each topic its answer cards → mini cards → one-liners. Every mini card and one-liner starts with a colour key such as `{W9}`; answer cards take their colour from the 〔topic〕 in the title. Sentences are complete English sentences (the review lecture asks for them), self-contained (no "It/This" pointing back), with code in backticks.
+Follow `references/format.md` exactly: header notes (not printed), the line `## 答题卡`, then blocks **grouped by topic** in lecture order — first the answer-method group, then for each topic its answer cards → mini cards → one-liners. Answer cards take their colour from the 〔topic〕 in the title; every mini card and one-liner starts with the colour key of its topic's answer cards, such as `{W9}` (format.md §4 — with the default mapping, topic 1 is `{W2}`). Sentences are complete English sentences (the review lecture asks for them), self-contained (no "It/This" pointing back), with code in backticks.
 
 Draw diagrams as text (a code block with ├─ └─, a line of arrows, a table); add an image only when the shape itself is the answer, and weigh its cost in lines (`references/format.md` → Figures).
 
@@ -50,7 +51,7 @@ Paraphrase lecture and exam material in your own words; never paste slide text o
 Run these from the folder that holds the master:
 
 ```bash
-python <skill>/scripts/check_master.py sheet.md                       # fix every error; read the reminders
+python <skill>/scripts/check_master.py sheet.md --font 5              # fix every error; read the reminders
 python <skill>/scripts/build_cheatsheet.py sheet.md sheet.docx 5      # or 4.5 if the print test is fine
 powershell -NoProfile -ExecutionPolicy Bypass -File <skill>/scripts/export_pdf.ps1 -Docx sheet.docx -Pdf sheet.pdf
 python <skill>/scripts/measure_layout.py sheet.pdf --short 0.25 --find "TCP vs UDP" "Subnetting"
@@ -58,11 +59,16 @@ python <skill>/scripts/measure_layout.py sheet.pdf --short 0.25 --find "TCP vs U
 
 `measure_layout.py` prints the font size and margin it detected on its first line; pass `--font` / `--margin-cm` only if those look wrong.
 
-The build needs `pandoc` (≥ 2.x) and `python-docx`. If `pandoc` is not on PATH, look for a bundled copy (RStudio/Quarto ship one under `…/quarto/bin/tools/`) and prepend its folder to PATH for the build only.
+The build needs `pandoc` (≥ 2.x) and `python-docx`. It finds pandoc by itself on PATH, through the `PANDOC` environment variable, or in the copy bundled with RStudio (`<RStudio>/resources/app/bin/quarto/bin/tools/pandoc.exe`) or Quarto (`<Quarto>/bin/tools/`). If it still reports pandoc missing, install pandoc, or point `PANDOC` at the executable for the build only — PowerShell: `$env:PANDOC = 'D:\path\to\pandoc.exe'; python …`, bash: `PANDOC=/path/to/pandoc python …`.
 
-### 5. Fit to exactly two pages
+### 5. Fit to two pages
 
-Use `references/fitting.md`. In short: overflow → first shorten paragraphs whose last printed line is nearly empty (a few words each, no points lost), then drop the lowest-priority one-liners; spare space → add from the gap list in priority order. Leave 1–2 lines of slack so a different Word/printer does not spill onto page 3. Never go past two pages.
+Use `references/fitting.md`. In short, read the measure output top-down:
+- **Overflow:** first pull back blocks pushed to the next column (the "columns end early" list: save 1–2 lines above that gap), then shorten paragraphs whose last printed line is nearly empty (a few words each, no points lost), then drop the lowest-priority one-liners.
+- **Spare space:** add from the gap list in priority order.
+- **Far too little content** (the script then suggests a font size): see "Too little content" in fitting.md. Never invent content to fill space.
+
+Leave 1–2 lines of slack so a different Word or printer does not spill onto page 3. Never go past two pages.
 
 ### 6. Verify and deliver
 
@@ -70,7 +76,20 @@ Use `references/fitting.md`. In short: overflow → first shorten paragraphs who
 - Every sample-exam part and review-lecture example question can be answered by copying sentences from one card; check that the Q lines point to the right numbers (the script only checks that those numbers exist).
 - Re-measure after every change, and if other documents quote card locations (e.g. a sample-exam answer key "B side, column 2, middle"), update them.
 - Ask the user to **print one copy** and check legibility before the exam; small fonts read differently on paper than on screen.
+- The PDF has at most two pages: exactly two when the material fills them, otherwise what it fills at the chosen size.
 - Deliver `.md` (master — edit this, not the `.docx`), `.docx` (print this) and `.pdf` (preview). Keep the previous version when making a variant (e.g. a 4.5 pt edition) instead of overwriting it.
+
+## Editing an existing sheet
+
+For "add X / replace Y / make it fit again" requests on a sheet that already exists:
+
+1. Back up the master (or save the change under a new version name), then build, export and measure the current version first, and note its spare lines.
+2. Make the change in the `.md`, never in the `.docx`. Place new blocks in their topic group (answer cards → mini cards → one-liners); a figure goes directly after the card or mini card it illustrates.
+3. Run check, build, export and measure.
+4. If it overflows, follow fitting.md: column-bottom gaps first, then short last lines (`--no-points` hides answer-card points when the user protects them), then swap out low-priority one-liners. Never remove an answer-card point without the user's agreement.
+5. Report what was added and every sentence that was shortened or removed, and the spare lines before and after.
+
+An explicit user request (e.g. "add this picture") overrides the soft rules here, such as drawing diagrams as text first; mention the cost in lines.
 
 ## Defaults that came from printing tests
 

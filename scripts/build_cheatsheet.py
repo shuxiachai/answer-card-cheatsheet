@@ -16,13 +16,15 @@ A4 横向、5 栏自动分栏、页边距 0、Segoe UI + 微软雅黑 5 pt、行
 用法：
     python build_cheatsheet.py 你的cheatsheet.md [输出.docx] [字号，默认 5] [页边距 cm，默认 0]
 （打印机印不到纸边的话，页边距写 0.5。）
-需要：pandoc（命令行能运行 pandoc）和 python-docx（pip install python-docx）。
+需要：pandoc 和 python-docx（pip install python-docx）。pandoc 依次在这些地方找：环境变量 PANDOC
+（pandoc 可执行文件的完整路径）→ PATH → RStudio / Quarto 自带的那份（<RStudio>/resources/app/bin/quarto/bin/tools/）。
 图片：单独一行写 ![60%](图.png)，路径相对于 .md 所在的文件夹；方括号里的百分比是占栏宽的比例（不写就是 100%）。
 图片段落用单倍行距（固定行距会把图裁成一行高），整张图放在同一栏。
 如果 .md 里有一行 "## 答题卡"，只排这一行之后的内容（前面可以放说明文字）。
 排完用 Word 打开，导出 PDF，确认正好两页。
 """
 import copy
+import os
 import re
 import shutil
 import subprocess
@@ -45,8 +47,38 @@ sys.stdout.reconfigure(encoding="utf-8")
 sys.stderr.reconfigure(encoding="utf-8")
 if len(sys.argv) < 2:
     sys.exit(__doc__)
-if shutil.which("pandoc") is None:
-    sys.exit("找不到 pandoc：请先安装 pandoc（https://pandoc.org），再运行本脚本。")
+
+
+def find_pandoc():
+    """pandoc 的位置：环境变量 PANDOC → PATH → RStudio / Quarto / Pandoc 的常见安装位置。"""
+    env = os.environ.get("PANDOC")
+    if env and Path(env).is_file():
+        return env
+    if shutil.which("pandoc"):
+        return shutil.which("pandoc")
+    if os.name == "nt":
+        rel = ["Program Files/RStudio/resources/app/bin/quarto/bin/tools/pandoc.exe",
+               "Program Files/RStudio/resources/app/bin/pandoc/pandoc.exe",
+               "Program Files/RStudio/bin/quarto/bin/tools/pandoc.exe",
+               "Program Files/RStudio/bin/pandoc/pandoc.exe",
+               "Program Files/Quarto/bin/tools/pandoc.exe",
+               "Program Files/Pandoc/pandoc.exe"]
+        cands = [f"{d}:/{r}" for d in "CDEFGH" for r in rel]
+        local = os.environ.get("LOCALAPPDATA", "")
+        cands += [f"{local}/Pandoc/pandoc.exe", f"{local}/Programs/Quarto/bin/tools/pandoc.exe",
+                  f"{local}/Programs/RStudio/resources/app/bin/quarto/bin/tools/pandoc.exe"]
+    else:
+        tools = ["/Applications/RStudio.app/Contents/Resources/app/quarto/bin/tools",
+                 "/Applications/quarto/bin/tools", "/opt/quarto/bin/tools",
+                 "/usr/lib/rstudio/resources/app/bin/quarto/bin/tools", "/usr/lib/rstudio/bin/quarto/bin/tools"]
+        cands = [f"{t}/{arch}pandoc" for t in tools for arch in ("", "aarch64/", "x86_64/")]
+    return next((c for c in cands if Path(c).is_file()), None)
+
+
+PANDOC = find_pandoc()
+if PANDOC is None:
+    sys.exit("找不到 pandoc。可以：① 安装 pandoc（https://pandoc.org）；② 把环境变量 PANDOC 设成 pandoc 可执行文件的完整路径。\n"
+             "装过 RStudio 或 Quarto 的话，它们自带一份，通常在 <RStudio>/resources/app/bin/quarto/bin/tools/ 或 <Quarto>/bin/tools/。")
 src = Path(sys.argv[1])
 out = Path(sys.argv[2]) if len(sys.argv) > 2 else src.with_suffix(".docx")
 FONT_PT = float(sys.argv[3]) if len(sys.argv) > 3 else 5.0
@@ -109,7 +141,7 @@ def disp_width(s):
 
 # ---- 1. 颜色标记：删掉行首的 {W9} 等，按卡片顺序记下每张卡的颜色 ------------------------------------
 IMG_RE = re.compile(r"!\[([^\]]*)\]\(\s*<?([^)>\s]+)>?(?:\s+\"[^\"]*\")?\s*\)")
-lines, card_colors, fence, missing = [], [], False, []
+lines, card_colors, card_kinds, fence, missing = [], [], [], False, []
 for ln, line in enumerate(text.split("\n"), start=line_offset):
     if line.startswith("```"):
         fence = not fence
@@ -136,6 +168,7 @@ for ln, line in enumerate(text.split("\n"), start=line_offset):
                 if key is None:
                     warnings.append(f"第 {ln} 行：答题卡没有〔主题〕或主题配不上颜色，会用灰色：{line[:30]}")
             card_colors.append(key)
+            card_kinds.append(cm.group(2))
     lines.append(line)
 if missing:
     sys.exit("找不到图片（路径相对于 .md 所在的文件夹）：\n  " + "\n  ".join(missing))
@@ -183,7 +216,7 @@ with tempfile.TemporaryDirectory() as tmp:
     tmp_md, raw = Path(tmp) / "cards.md", Path(tmp) / "raw.docx"
     tmp_md.write_text("\n".join(md), encoding="utf-8", newline="\n")
     # ---- 3. pandoc --------------------------------------------------------------------------------
-    res = subprocess.run(["pandoc", str(tmp_md), "-f", "gfm", "-t", "docx", "--columns=10",
+    res = subprocess.run([PANDOC, str(tmp_md), "-f", "gfm", "-t", "docx", "--columns=10",
                           f"--resource-path={src.resolve().parent}", "-o", str(raw)],   # 图片按 .md 所在文件夹找
                          capture_output=True, encoding="utf-8", errors="replace")
     if res.returncode != 0:
@@ -417,6 +450,10 @@ with zipfile.ZipFile(out) as z:                      # 去掉 ZIP 目录项（�
 with zipfile.ZipFile(out, "w", zipfile.ZIP_DEFLATED) as z:
     for zi, data in items:
         z.writestr(zi, data)
-print(f"已生成：{out}（{len(card_colors)} 张卡，{len(doc.paragraphs)} 段，{len(doc.tables)} 个表格）。用 Word 打开后导出 PDF，确认正好两页。")
+print(f"已生成：{out}（答题卡 {card_kinds.count('★★★★')} 张，精简卡 {card_kinds.count('★★★ ')} 张，"
+      f"二星单句 {card_kinds.count('★★ ')} 条，图片 {len(doc.inline_shapes)} 张，表格 {len(doc.tables)} 个）。"
+      "用 Word 导出 PDF 后用 measure_layout.py 量页数和余量。")
+if shutil.which("pandoc") is None:
+    print(f"（用的 pandoc：{PANDOC}）")
 for w in warnings:
     print("注意：" + w)

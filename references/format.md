@@ -24,7 +24,7 @@
 <blocks, separated by one blank line>
 ```
 
-Order of blocks: answer-method group (scenario framework card(s), `{DESIGN}` tool menu, `{EXAM}` format template), then topic 1, topic 2, … in lecture order; inside each topic: answer cards → mini cards → one-liners.
+Order of blocks: answer-method group (scenario framework card(s), `{DESIGN}` tool menu, `{EXAM}` format template — only those the exam needs, see SKILL.md step 2), then topic 1, topic 2, … in lecture order; inside each topic: answer cards → mini cards → one-liners.
 
 ## 2. Block syntax (symbols must match exactly)
 
@@ -40,7 +40,7 @@ Q: Differences between TCP and UDP? → ①–⑤ · When would you use which? �
 - Title line: starts with `**★★★★ `, whole line bold; topic tag in 〔number name〕 (`〔A 答题〕` for the answer-method group) — the build script colours the card from this number; then Chinese name, then English title. A colour key such as `{DESIGN}` may precede the line to override.
 - Q line: `Q: ` + 1–3 likely question stems (use the sample exam / review lecture wording, paraphrased), each followed by `→` and the point numbers to copy (`①–⑤`, `⑥⑦`); stems separated by ` · `; ≤ 25 English words. Chinese notes may follow in （）. A card that is a tool rather than a question (e.g. a template) may use a `用法：…` line instead; it is printed the same way.
 - Points: `①`…`⑦`, a space, a tag, a space, one complete English sentence of 15–30 words (≈ 1 mark). Official marking points first, example last or second-to-last.
-- Tag: normally a 2–4 character Chinese tag (定义 / 区别 / 原因 / 选择 / 例子 / 局限 …). In a scenario/design framework card the tag is the official English sub-heading with a colon instead (`① Data Sources:`, up to three words). A tag that mixes Latin letters into Chinese (`TCP定义`) is not recognised and stays uncoloured.
+- Tag: normally a 2–4 character Chinese tag (定义 / 区别 / 原因 / 选择 / 例子 / 局限 …). In a scenario/design framework card the tag is the official English sub-heading with a colon instead (`① Data Sources:`, up to three words). A tag that contains Latin letters (`TCP定义`, `FCFS`, `TLB`) is not recognised and stays uncoloured, so use a Chinese word instead (先来先服务, 快表); 2–4 characters is a target, 5 is fine.
 - No blank lines inside a card except around tables and code fences.
 - Length: 120–190 English words per card (syntax and scenario cards up to ≈ 1,400 characters).
 
@@ -62,7 +62,7 @@ Same shape as a mini card but one sentence (often a comparison "A …, whereas B
 
 ### Tables and code
 
-- Syntax cards (selectors, query operators) may end with a compact GFM table (≤ 3 columns, ≤ 12 rows), with a blank line before and after.
+- Syntax cards (selectors, query operators) may end with a compact GFM table, with a blank line before and after. Aim for ≤ 3 columns and ≤ 12 rows; 4–5 short columns (numbers, codes) still read well; anything wider goes into a code block. Tables cannot hold figures.
 - Fenced code blocks (``` … ```) for multi-line examples (e.g. HTML + its DOM tree drawn with ├─ └─). The build script keeps a code block in one column and in monospace.
 
 ### Figures
@@ -82,10 +82,11 @@ Use an image only when the shape itself is the answer (spatial relations, chart 
 ![60%](figures/star-schema.png)
 ```
 
-- Put it on its own line, inside the card it belongs to, after the points (like a table), and point the Q line at it (`→ ③, figure`).
+- Put it on its own line directly after what it illustrates: after the points of an answer card (like a table, and point the Q line at it: `→ ③, figure`), or right after a mini card or one-liner. A figure that does not fit at a column bottom moves to the top of the next column, away from its text; that is acceptable, or save lines above it to pull it back.
 - The number in `[ ]` is the width as a percentage of the column (10–100 %, default 100 %); the height follows the aspect ratio. The path is relative to the master's folder; web URLs are not supported. Use PNG or JPG.
-- Redraw rather than screenshot when you can: black line art on white, thick lines, no colours that must be told apart in greyscale. Labels must still be ≥ 5 pt after scaling: at 100 % of the column their height needs ≈ 1/33 of the image width in pixels (900 px wide → ≥ 27 px), at 60 % ≈ 1/20. `check_master.py` prints the height in lines and the minimum label size for every image.
+- Redraw rather than screenshot when you can: black line art on white, thick lines, no colours that must be told apart in greyscale. Labels must not print smaller than the body text: set their font size, in the image's own pixels, to at least ≈ 1/33 of the image width at 100 % of the column for 5 pt (900 px wide → 27 px), ≈ 1/20 at 60 %. `check_master.py --font <size>` prints the height in lines and this minimum for every image at the size you plan to print.
 - Not inside tables, and not on a line with text: cell text uses exact line height, which crops images.
+- When the user asks for a particular picture, use it even where the text-first rule would not; mention its cost in lines.
 - Slide and textbook figures are someone else's work: keep them in your private sheet, never in a public repository.
 
 ## 3. Writing rules per question type
@@ -100,7 +101,9 @@ Use an image only when the shape itself is the answer (spatial relations, chart 
 
 ## 4. Colour keys and palette
 
-Line-start keys (stripped at build time): `{EXAM}` answer method, `{DESIGN}` design/scenario, `{W1}`…`{W12}` lecture week. Any other `{…}` at the start of a line is printed as it is.
+Line-start keys (stripped at build time): `{EXAM}` answer method, `{DESIGN}` design/scenario, `{W1}`…`{W12}` twelve further palette colours (named after lecture weeks, but they are only colour names). Any other `{…}` at the start of a line is printed as it is.
+
+Give a mini card or one-liner the same key as the answer cards of its topic: with the default mapping below, topic 1 → `{W2}`, topic 2 → `{W3}` and so on, so `{W1}` is not "topic 1". For a new course it is simplest to put `配色: 1=W1 2=W2 3=W3 …` in the header notes, so that topic n is `{Wn}`.
 
 Answer cards take their colour from the 〔topic〕 in the title: A→EXAM, 1→W2, 2→W3, 3→W4, 4→W5, 5→W6, 6→W7, 7→W8, 8→W9, 9→W10, 10→W12; any other number cycles through W1…W12 (11→W11, 13→W1). For another course, put one line in the header notes such as `配色: 1=W3 2=W5 B=DESIGN` (also accepted: `colours:`); its pairs override the defaults. A topic that is neither a number nor in that line (e.g. 〔B〕 without a mapping) gets grey, and `check_master.py` reports it.
 
@@ -150,4 +153,4 @@ Everything is printed at **one size** (argument 3: default 5 pt, 4.5 pt also pri
 
 - Capacity at 5 pt ≈ 4,000 non-space characters per column, ≈ 40,000 for both sides; 4.5 pt holds ≈ 20 % more.
 - Before building, run `scripts/check_master.py`. It checks what a script can: card titles bold and coloured, colour keys known, a Q line under every answer card, point numbering continuous, every Q reference pointing to an existing point, tags recognised, no Chinese inside the English sentences, no sentence opening with It/This/They, image files present (with each figure's height in lines), and lengths (Q line ≤ 25 words, point ≤ 40 words, answer card ≤ 1,400, mini card ≤ 290, one-liner ≤ 400 non-space characters). Its limits are deliberately a little looser than the targets above.
-- Still check by hand: each sample-exam part's official points are in the first points of one card, the Q lines point to the *right* points, sentences contain no sources, page or quiz numbers, and the PDF has exactly two pages.
+- Still check by hand: each sample-exam part's official points are in the first points of one card, the Q lines point to the *right* points, sentences contain no sources, page or quiz numbers, and the PDF has at most two pages (exactly two when the material fills them).

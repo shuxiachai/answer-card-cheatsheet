@@ -19,7 +19,7 @@ Then ask Claude Code something like "帮我做一份这门课的 cheatsheet" or 
 ## Requirements
 
 - Python 3 with `python-docx` and `PyMuPDF` (`pip install python-docx pymupdf`)
-- `pandoc` 2.x or newer on PATH
+- `pandoc` 2.x or newer: on PATH, named by the `PANDOC` environment variable, or the copy bundled with RStudio / Quarto (found automatically)
 - Microsoft Word on Windows for `scripts/export_pdf.ps1` (or export the `.docx` to PDF any other way)
 
 ## Contents
@@ -28,7 +28,7 @@ Then ask Claude Code something like "帮我做一份这门课的 cheatsheet" or 
 |---|---|
 | `SKILL.md` | Workflow: collect exam signals, tier the content, write the master, build, fit to two pages, verify |
 | `references/format.md` | Exact Markdown syntax of every block, writing rules per question type, colour palette, layout spec |
-| `references/fitting.md` | How to land on exactly two pages: measured compression ladder, trimming, pitfalls |
+| `references/fitting.md` | How to land on two pages: column-bottom gaps, measured compression ladder, too little content, trimming, pitfalls |
 | `scripts/check_master.py` | Checks the master before building (colours, Q-line references, numbering, tags, lengths, figures) |
 | `scripts/build_cheatsheet.py` | Markdown master → `.docx` (`python build_cheatsheet.py sheet.md [out.docx] [font_pt=5] [margin_cm=0]`); figures via `![60%](fig.png)` |
 | `scripts/export_pdf.ps1` | Word export of the `.docx` to PDF (relative or absolute paths) |
