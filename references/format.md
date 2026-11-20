@@ -90,11 +90,32 @@ Tint (table header fill) = 14 % of the colour mixed with white.
 ## 5. Printed layout (implemented by `build_cheatsheet.py`)
 
 - A4 landscape, margins 0 (argument 4 for cm), 5 newspaper columns, 0.1 cm gap with a separator rule.
-- Segoe UI + 微软雅黑, default 5 pt (argument 3), exact line height 1.18 × size, normal letter spacing, left aligned, no space before/after, widow/orphan control off (otherwise columns end with empty lines).
-- Answer-card title: topic-colour fill, white bold text, kept with the next paragraph. Q line dark grey 404040, kept with the next paragraph. Leading ★ marks are stripped from the printed text.
-- Points: hanging indent ≈ 1.05 × size, "① tag" bold in the topic colour. Mini cards and one-liners: hanging indent ≈ 1.6 × size, bold title in the topic colour.
-- Tables: 100 % width, 0.25 pt grey (808080) borders, ≈ 0.05 cm cell padding, header in the topic tint with bold topic-colour text.
-- Code blocks: Consolas, F2F2F2 fill, kept in one column; inline code Arial Narrow.
+- Every paragraph: exact line height 1.18 × size, normal letter spacing, left aligned, no space before/after, widow/orphan control off (otherwise columns end with empty lines). Leading ★ marks are stripped from the printed text.
+- The card title and the Q line are kept with the next paragraph; a code block is kept in one column.
+- Hanging indent: points ≈ 1.05 × size; mini cards and one-liners ≈ 1.6 × size.
+- Tables: 100 % width, 0.25 pt grey (808080) borders, ≈ 0.05 cm cell padding.
+
+### Font and style table 字体样式表
+
+Everything is printed at **one size** (argument 3: default 5 pt, 4.5 pt also print-tested) with exact line height 1.18 × size (5 pt → 5.9 pt, 4.5 pt → 5.3 pt). There are no larger headings: the hierarchy comes only from fill, colour and bold. "Topic colour" is the card's palette colour (§4), and "tint" is 14 % of that colour mixed with white.
+
+| Element 元素 | Written as | Latin font | CJK font | Weight | Text colour | Background |
+|---|---|---|---|---|---|---|
+| Body text 正文 | plain text | Segoe UI | 微软雅黑 | regular | black | none |
+| Bold in text 正文加粗 | `**…**` | Segoe UI | 微软雅黑 | bold | black | none |
+| Answer-card title 答题卡标题 | `**★★★★ …**` | Segoe UI | 微软雅黑 | bold | white | topic-colour bar |
+| Q line / 用法 line 题干行 | `Q: …` / `用法…` | Segoe UI | 微软雅黑 | regular | dark grey 404040 | none |
+| Point tag 要点标签 | `①` + Chinese tag | Segoe UI | 微软雅黑 | bold | topic colour | none |
+| Point sentence 要点句 | text after the tag | Segoe UI | 微软雅黑 | regular | black | none |
+| Mini-card / one-liner title 精简卡、单句标题 | `**★★★ …**` / `**★★ …**` | Segoe UI | 微软雅黑 | bold | topic colour | none |
+| Table header 表头 | first table row | Segoe UI | 微软雅黑 | bold | topic colour | topic tint |
+| Table cells 表格内容 | other rows | Segoe UI | 微软雅黑 | regular | black | none |
+| Inline code 行内代码 | `` `…` `` | Arial Narrow | 微软雅黑 | regular | black | none |
+| Code block 代码块 | fenced block | Consolas | 微软雅黑 | regular | black | light grey F2F2F2 |
+
+- A card without a colour gets a light-grey (E2E2E2) title bar and table header, with black text.
+- Why these fonts: Segoe UI is about as compact as condensed Arial but its letters stay distinct at 4.5–5 pt; Arial Narrow keeps long inline code short; Consolas is monospaced, which DOM trees and aligned code need.
+- The fonts are set in one line of `build_cheatsheet.py` (`LATIN, EA, MONO, NARROW = …`). If a font is missing (for example on a Mac without Microsoft fonts), Word substitutes another one silently and the page count changes, so change that line (e.g. Helvetica Neue / PingFang SC / Menlo / Arial Narrow), rebuild, and measure again.
 
 ## 6. Capacity and self-check
 

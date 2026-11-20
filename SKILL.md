@@ -66,5 +66,6 @@ Use `references/fitting.md`. In short: overflow → first shorten paragraphs who
 - Body font Segoe UI (Latin) + 微软雅黑 (CJK) at normal letter spacing — condensed Arial looked crowded on paper; Segoe UI is about as compact and clearer.
 - 5 pt, exact line height = 1.18 × font size (5 pt → 5.9 pt); 4.5 pt was still readable in a print test and frees ≈ 1.4 columns.
 - Inline code Arial Narrow (saves ≈ 12 lines); code blocks Consolas and kept in one column (a DOM tree needs monospace alignment).
+- One size for everything; titles stand out by fill, colour and bold only. The per-element font / weight / colour / background table is in `references/format.md` → "Font and style table", including what to change when a font is missing.
 - 0 margins printed fine on an ordinary office laser printer; use 0.5 cm if a printer clips the edges.
 - No answer-template card: generic sentence frames proved low value once every card is written in those patterns.
