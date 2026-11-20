@@ -1,0 +1,102 @@
+# Format reference
+
+## Contents
+1. File layout
+2. Block syntax (answer card, mini card, one-liner, tables, code)
+3. Writing rules per question type
+4. Colour keys and palette
+5. Printed layout (what the build script does)
+6. Capacity and self-check
+
+## 1. File layout
+
+```
+# <Course> Cheatsheet 答题卡（…）
+
+> Notes for the student and for future edits — NOT printed (everything before "## 答题卡" is skipped).
+
+## 怎么用
+1. …
+
+## 答题卡
+
+<blocks, separated by one blank line>
+```
+
+Order of blocks: answer-method group (scenario framework card(s), `{DESIGN}` tool menu, `{EXAM}` format template), then topic 1, topic 2, … in lecture order; inside each topic: answer cards → mini cards → one-liners.
+
+## 2. Block syntax (symbols must match exactly)
+
+### Answer card (★★★★)
+
+```
+**★★★★ 〔1 传输层〕 TCP 与 UDP TCP vs UDP**
+Q: Differences between TCP and UDP? → ①–⑤ · When would you use which? → ⑥
+① 面向连接 TCP is a connection-oriented transport protocol that delivers a reliable, ordered byte stream between two applications.
+② 无连接 UDP is a connectionless transport protocol that sends independent datagrams without guaranteeing delivery or order.
+```
+
+- Title line: starts with `**★★★★ `, whole line bold; topic tag in 〔number name〕 (`〔A 答题〕` for the answer-method group) — the build script colours the card from this number; then Chinese name, then English title. A colour key such as `{DESIGN}` may precede the line to override.
+- Q line: `Q: ` + 1–3 likely question stems (use the sample exam / review lecture wording, paraphrased), each followed by `→` and the point numbers to copy; stems separated by ` · `; ≤ 25 words. Chinese notes may follow in （）.
+- Points: `①`…`⑦`, a space, a 2–4 character Chinese tag (定义 / 区别 / 原因 / 选择 / 例子 / 局限 …; Chinese characters only — a tag mixing in Latin letters is not recognised and stays uncoloured), a space, one complete English sentence of 15–30 words (≈ 1 mark). Official marking points first, example last or second-to-last.
+- No blank lines inside a card except around tables and code fences.
+- Length: 120–190 English words per card (syntax and scenario cards up to ≈ 1,400 characters).
+
+### Mini card (★★★)
+
+```
+{W2} **★★★ 三次握手 Three-way handshake** A TCP client sends SYN, the server answers SYN-ACK and the client replies ACK, …
+```
+
+One paragraph: colour key, bold `★★★ 中文 English`, then 1–2 complete sentences (≈ 40 words, ≤ ≈ 290 non-space characters). No Q line, no tags.
+
+### One-liner (★★)
+
+```
+{W3} **★★ SQL 子句 SQL clauses** `SELECT customer_id, SUM(amount) AS total FROM orders WHERE order_date >= '2026-01-01' GROUP BY customer_id HAVING COUNT(*) > 3 ORDER BY total DESC;` WHERE filters rows before grouping, HAVING filters groups.
+```
+
+Same shape as a mini card but one sentence (often a comparison "A …, whereas B …", a fact list for MCQs, or a code template plus one explanatory clause). Put spaces inside long inline code so Word can wrap it.
+
+### Tables and code
+
+- Syntax cards (selectors, query operators) may end with a compact GFM table (≤ 3 columns, ≤ 12 rows), with a blank line before and after.
+- Fenced code blocks (``` … ```) for multi-line examples (e.g. HTML + its DOM tree drawn with ├─ └─). The build script keeps a code block in one column and in monospace.
+
+## 3. Writing rules per question type
+
+- **Compare A and B**: ① define A; ② define B; ③–⑤ one dimension each as "A …, whereas B …"; ⑥ "Use A when …; use B when …, e.g. …". (The review lecture's advice: define each in one sentence, then compare.)
+- **Explain / why important / role**: one definition, 3–4 reasons or benefits, one example.
+- **Process / steps**: one sentence per step, starting with the step name.
+- **Read-the-code / syntax** (CSS selector, query operator, XPath): 3–5 rules including a worked example, then a compact table. Variant questions are answered by applying the rules; the rule sentence is the copyable justification.
+- **Issue → measure**: "One issue is …; to address it, …", officially listed issues first.
+- **Scenario / design framework**: Q line maps each sub-question to points; points start with the official sub-headings ("① Data Sources: …"), each a fill-in sentence whose [bracketed] parts are replaced by the question's data in the exam.
+- Every sentence names its subject (no "It/This" referring back), contains no Chinese, sources, page or quiz numbers, arrows or telegraphic abbreviations; code, queries and function names go in backticks.
+
+## 4. Colour keys and palette
+
+Line-start keys (stripped at build time): `{EXAM}` answer method, `{DESIGN}` design/scenario, `{W1}`…`{W12}` lecture week. Answer cards default by 〔topic〕: A→EXAM, 1→W2, 2→W3, 3→W4, 4→W5, 5→W6, 6→W7, 7→W8, 8→W9, 9→W10, 10→W12 (edit `TOPIC_DEFAULT` in the script for another course's numbering).
+
+| Key | Hex | Key | Hex | Key | Hex |
+|---|---|---|---|---|---|
+| EXAM | 1F3B57 | W3 | 1565C0 | W8 | 6D4C41 |
+| DESIGN | 8D6E00 | W4 | D84315 | W9 | 283593 |
+| W1 | 546E7A | W5 | 6A1B9A | W10 | 37474F |
+| W2 | 2E7D32 | W6 | 00838F | W11 | 558B2F |
+|  |  | W7 | AD1457 | W12 | C62828 |
+
+Tint (table header fill) = 14 % of the colour mixed with white.
+
+## 5. Printed layout (implemented by `build_cheatsheet.py`)
+
+- A4 landscape, margins 0 (argument 4 for cm), 5 newspaper columns, 0.1 cm gap with a separator rule.
+- Segoe UI + 微软雅黑, default 5 pt (argument 3), exact line height 1.18 × size, normal letter spacing, left aligned, no space before/after, widow/orphan control off (otherwise columns end with empty lines).
+- Answer-card title: topic-colour fill, white bold text, kept with the next paragraph. Q line dark grey 404040, kept with the next paragraph. Leading ★ marks are stripped from the printed text.
+- Points: hanging indent ≈ 1.05 × size, "① tag" bold in the topic colour. Mini cards and one-liners: hanging indent ≈ 1.6 × size, bold title in the topic colour.
+- Tables: 100 % width, 0.25 pt grey (808080) borders, ≈ 0.05 cm cell padding, header in the topic tint with bold topic-colour text.
+- Code blocks: Consolas, F2F2F2 fill, kept in one column; inline code Arial Narrow.
+
+## 6. Capacity and self-check
+
+- Capacity at 5 pt ≈ 4,000 non-space characters per column, ≈ 40,000 for both sides; 4.5 pt holds ≈ 20 % more.
+- Before delivering: every card has a title and Q line, numbering is continuous, every point has a Chinese tag, English sentences contain no Chinese or sources, each sample-exam part's official points are in the first points of one card, and the PDF has exactly two pages.
