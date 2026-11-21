@@ -13,8 +13,8 @@ The format was refined through repeated printing tests; the details below are wh
 
 Paths are relative to this skill's directory (the base directory shown when the skill loads, written `<skill>` below); the user's files stay in their own project folder.
 
-- `scripts/check_master.py` — checks the Markdown master before building: errors the build would get wrong (uncoloured or shifted colours, unknown colour keys, Q lines pointing to missing points, broken numbering, unpaired `**`) and reminders from the format rules (missing Q line, unrecognised tag, Chinese in an English sentence, too long), plus each figure's height in lines and minimum label size at the size given with `--font` (default 5). Exit code 1 on errors.
-- `scripts/build_cheatsheet.py` — Markdown master → `.docx` with the full layout (fonts, colours, columns, spacing). `python build_cheatsheet.py sheet.md [out.docx] [font_pt=5] [margin_cm=0]`; it also prints warnings such as a card title without `**`. Figures (`![60%](fig.png)` on their own line) are scaled to the column.
+- `scripts/check_master.py` — checks the Markdown master before building: errors the build would get wrong (uncoloured or shifted colours, unknown colour keys, Q lines pointing to missing points, broken numbering, unpaired `**`) and reminders from the format rules (missing Q line, unrecognised tag, Chinese in an English sentence, too long), plus each figure's height in lines and minimum label size at the size given with `--font` (default 4.5). Exit code 1 on errors.
+- `scripts/build_cheatsheet.py` — Markdown master → `.docx` with the full layout (fonts, colours, columns, spacing). `python build_cheatsheet.py sheet.md [out.docx] [font_pt=4.5] [margin_cm=0]`; it also prints warnings such as a card title without `**`. Figures (`![60%](fig.png)` on their own line) are scaled to the column.
 - `scripts/export_pdf.ps1` — Word (COM) export of the `.docx` to PDF on Windows; relative paths are fine.
 - `scripts/measure_layout.py` — page count, spare or overflow lines (figures included), columns that end early because the next kept-together block was pushed on, paragraphs with short last lines (`pt` = answer-card point; `--no-points` hides them), where given text sits (`--find`), and every line of a paragraph with its fill (`--lines`). When the content fills far less than two sides it suggests a font size. Font size and margin are read from the PDF.
 - `references/format.md` — the exact Markdown syntax of every block, writing rules per question type, layout spec and colour palette. **Read it before writing any content.**
@@ -51,8 +51,8 @@ Paraphrase lecture and exam material in your own words; never paste slide text o
 Run these from the folder that holds the master:
 
 ```bash
-python <skill>/scripts/check_master.py sheet.md --font 5              # fix every error; read the reminders
-python <skill>/scripts/build_cheatsheet.py sheet.md sheet.docx 5      # or 4.5 if the print test is fine
+python <skill>/scripts/check_master.py sheet.md                       # fix every error; read the reminders (--font 5 for a 5 pt sheet)
+python <skill>/scripts/build_cheatsheet.py sheet.md sheet.docx        # 4.5 pt by default; add 5 as a third argument for 5 pt
 powershell -NoProfile -ExecutionPolicy Bypass -File <skill>/scripts/export_pdf.ps1 -Docx sheet.docx -Pdf sheet.pdf
 python <skill>/scripts/measure_layout.py sheet.pdf --short 0.25 --find "TCP vs UDP" "Subnetting"
 ```
@@ -77,7 +77,7 @@ Leave 1–2 lines of slack so a different Word or printer does not spill onto pa
 - Re-measure after every change, and if other documents quote card locations (e.g. a sample-exam answer key "B side, column 2, middle"), update them.
 - Ask the user to **print one copy** and check legibility before the exam; small fonts read differently on paper than on screen.
 - The PDF has at most two pages: exactly two when the material fills them, otherwise what it fills at the chosen size.
-- Deliver `.md` (master — edit this, not the `.docx`), `.docx` (print this) and `.pdf` (preview). Keep the previous version when making a variant (e.g. a 4.5 pt edition) instead of overwriting it.
+- Deliver `.md` (master — edit this, not the `.docx`), `.docx` (print this) and `.pdf` (preview). Keep the previous version when making a variant (e.g. a 5 pt edition) instead of overwriting it.
 
 ## Editing an existing sheet
 
@@ -94,7 +94,7 @@ An explicit user request (e.g. "add this picture") overrides the soft rules here
 ## Defaults that came from printing tests
 
 - Body font Segoe UI (Latin) + 微软雅黑 (CJK) at normal letter spacing — condensed Arial looked crowded on paper; Segoe UI is about as compact and clearer.
-- 5 pt, exact line height = 1.18 × font size (5 pt → 5.9 pt); 4.5 pt was still readable in a print test and frees ≈ 1.4 columns.
+- 4.5 pt by default, exact line height = 1.18 × font size (4.5 pt → 5.3 pt): it read fine in a print test and holds ≈ 1.4 columns more than 5 pt. Use 5 pt (→ 5.9 pt) when the user's print test is hard to read or the content does not need the space.
 - Inline code Arial Narrow (saves ≈ 12 lines); code blocks Consolas and kept in one column (a DOM tree needs monospace alignment).
 - One size for everything; titles stand out by fill, colour and bold only. The per-element font / weight / colour / background table is in `references/format.md` → "Font and style table", including what to change when a font is missing.
 - 0 margins printed fine on an ordinary office laser printer; use 0.5 cm if a printer clips the edges.

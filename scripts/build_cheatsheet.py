@@ -1,5 +1,5 @@
 """把「答题卡式」cheatsheet 的 Markdown 排成 Word 版：
-A4 横向、5 栏自动分栏、页边距 0、Segoe UI + 微软雅黑 5 pt、行距固定 5.9 pt、
+A4 横向、5 栏自动分栏、页边距 0、Segoe UI + 微软雅黑 4.5 pt、行距固定 5.3 pt（字号可以改）、
 ★★★★ 标题彩色底白字、Q 行深灰、"① 标签" 加粗着色、精简卡悬挂缩进、紧凑表格、代码灰底。
 为了省地方：行首的 ★★★★ / ★★★ / ★★ 只在 .md 里用来区分卡片类型，排版时删掉；
 标题条、精简卡和二星单句的段前都是 0；关掉孤行控制，栏底不再空出几行；
@@ -14,7 +14,7 @@ A4 横向、5 栏自动分栏、页边距 0、Segoe UI + 微软雅黑 5 pt、行
 （排版时会删掉，不占版面）。卡片标题要用 ** 加粗，否则标题不会着色（脚本会提示）。
 
 用法：
-    python build_cheatsheet.py 你的cheatsheet.md [输出.docx] [字号，默认 5] [页边距 cm，默认 0]
+    python build_cheatsheet.py 你的cheatsheet.md [输出.docx] [字号，默认 4.5] [页边距 cm，默认 0]
 （打印机印不到纸边的话，页边距写 0.5。）
 需要：pandoc 和 python-docx（pip install python-docx）。pandoc 依次在这些地方找：环境变量 PANDOC
 （pandoc 可执行文件的完整路径）→ PATH → RStudio / Quarto 自带的那份（<RStudio>/resources/app/bin/quarto/bin/tools/）。
@@ -81,10 +81,10 @@ if PANDOC is None:
              "装过 RStudio 或 Quarto 的话，它们自带一份，通常在 <RStudio>/resources/app/bin/quarto/bin/tools/ 或 <Quarto>/bin/tools/。")
 src = Path(sys.argv[1])
 out = Path(sys.argv[2]) if len(sys.argv) > 2 else src.with_suffix(".docx")
-FONT_PT = float(sys.argv[3]) if len(sys.argv) > 3 else 5.0
+FONT_PT = float(sys.argv[3]) if len(sys.argv) > 3 else 4.5
 MARGIN_CM = float(sys.argv[4]) if len(sys.argv) > 4 else 0.0
 HALF = str(int(round(FONT_PT * 2)))
-LINE = Pt(FONT_PT * 1.18)         # 行距固定值（5 pt 字 → 5.9 pt）：否则含中文的行会比纯英文的行高
+LINE = Pt(FONT_PT * 1.18)         # 行距固定值（4.5 pt 字 → 5.3 pt，5 pt → 5.9 pt）：否则含中文的行会比纯英文的行高
 LATIN, EA, MONO, NARROW = "Segoe UI", "微软雅黑", "Consolas", "Arial Narrow"
 CIRCLED = "①②③④⑤⑥⑦⑧⑨⑩⑪⑫"
 GREY_TITLE, GREY_CODE = "E2E2E2", "F2F2F2"

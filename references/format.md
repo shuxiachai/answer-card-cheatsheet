@@ -67,7 +67,7 @@ Same shape as a mini card but one sentence (often a comparison "A …, whereas B
 
 ### Figures
 
-Draw it as text first. A figure costs ≈ 4.8 lines per cm of height at 5 pt; a full-column figure with a 2 : 1 aspect ratio is ≈ 2.9 cm ≈ 14 lines, the space of 3–4 one-liners. Text diagrams are also searchable and easy to copy.
+Draw it as text first. A figure costs ≈ 5.3 lines per cm of height at 4.5 pt; a full-column figure with a 2 : 1 aspect ratio is ≈ 2.9 cm ≈ 15 lines, the space of 3–4 one-liners. Text diagrams are also searchable and easy to copy.
 
 | Shape | Text version |
 |---|---|
@@ -84,7 +84,7 @@ Use an image only when the shape itself is the answer (spatial relations, chart 
 
 - Put it on its own line directly after what it illustrates: after the points of an answer card (like a table, and point the Q line at it: `→ ③, figure`), or right after a mini card or one-liner. A figure that does not fit at a column bottom moves to the top of the next column, away from its text; that is acceptable, or save lines above it to pull it back.
 - The number in `[ ]` is the width as a percentage of the column (10–100 %, default 100 %); the height follows the aspect ratio. The path is relative to the master's folder; web URLs are not supported. Use PNG or JPG.
-- Redraw rather than screenshot when you can: black line art on white, thick lines, no colours that must be told apart in greyscale. Labels must not print smaller than the body text: set their font size, in the image's own pixels, to at least ≈ 1/33 of the image width at 100 % of the column for 5 pt (900 px wide → 27 px), ≈ 1/20 at 60 %. `check_master.py --font <size>` prints the height in lines and this minimum for every image at the size you plan to print.
+- Redraw rather than screenshot when you can: black line art on white, thick lines, no colours that must be told apart in greyscale. Labels must not print smaller than the body text: set their font size, in the image's own pixels, to at least ≈ 1/37 of the image width at 100 % of the column for 4.5 pt (900 px wide → 24 px), ≈ 1/22 at 60 % (for 5 pt: 1/33 and 1/20). `check_master.py --font <size>` prints the height in lines and this minimum for every image at the size you plan to print.
 - Not inside tables, and not on a line with text: cell text uses exact line height, which crops images.
 - When the user asks for a particular picture, use it even where the text-first rule would not; mention its cost in lines.
 - Slide and textbook figures are someone else's work: keep them in your private sheet, never in a public repository.
@@ -128,7 +128,7 @@ Tint (table header fill) = 14 % of the colour mixed with white.
 
 ### Font and style table 字体样式表
 
-Everything is printed at **one size** (argument 3: default 5 pt, 4.5 pt also print-tested) with exact line height 1.18 × size (5 pt → 5.9 pt, 4.5 pt → 5.3 pt). There are no larger headings: the hierarchy comes only from fill, colour and bold. "Topic colour" is the card's palette colour (§4), and "tint" is 14 % of that colour mixed with white.
+Everything is printed at **one size** (argument 3: default 4.5 pt, print-tested; 5 pt for larger print) with exact line height 1.18 × size (4.5 pt → 5.3 pt, 5 pt → 5.9 pt). There are no larger headings: the hierarchy comes only from fill, colour and bold. "Topic colour" is the card's palette colour (§4), and "tint" is 14 % of that colour mixed with white.
 
 | Element 元素 | Written as | Latin font | CJK font | Weight | Text colour | Background |
 |---|---|---|---|---|---|---|
@@ -151,6 +151,6 @@ Everything is printed at **one size** (argument 3: default 5 pt, 4.5 pt also pri
 
 ## 6. Capacity and self-check
 
-- Capacity at 5 pt ≈ 4,000 non-space characters per column, ≈ 40,000 for both sides; 4.5 pt holds ≈ 20 % more.
+- Capacity at 4.5 pt ≈ 4,800 non-space characters per column, ≈ 48,000 for both sides; 5 pt holds ≈ 20 % less (≈ 4,000 / 40,000).
 - Before building, run `scripts/check_master.py`. It checks what a script can: card titles bold and coloured, colour keys known, a Q line under every answer card, point numbering continuous, every Q reference pointing to an existing point, tags recognised, no Chinese inside the English sentences, no sentence opening with It/This/They, image files present (with each figure's height in lines), and lengths (Q line ≤ 25 words, point ≤ 40 words, answer card ≤ 1,400, mini card ≤ 290, one-liner ≤ 400 non-space characters). Its limits are deliberately a little looser than the targets above.
 - Still check by hand: each sample-exam part's official points are in the first points of one card, the Q lines point to the *right* points, sentences contain no sources, page or quiz numbers, and the PDF has at most two pages (exactly two when the material fills them).

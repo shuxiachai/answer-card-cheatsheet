@@ -25,7 +25,7 @@ Always measure with `scripts/measure_layout.py` after each build; the numbers be
 | Column gap 0.2 → 0.1 cm | ≈ 12 lines | text close to the rule |
 | Inline code Arial Narrow | ≈ 12–16 lines | code less distinct |
 | Line height 1.2 → 1.18 × font | ≈ 10–16 lines | barely visible |
-| Font 5 → 4.5 pt | ≈ 160 lines (1.4 columns) | must pass a print test |
+| Font 5 → 4.5 pt (the default since; smaller sizes were not tested) | ≈ 160 lines (1.4 columns) | must pass a print test |
 
 Moves that did **not** pay off: letter spacing −0.1 pt (crowded on paper), Arial Narrow for body text (hard to read), hyphenation (split words get copied wrongly), column gap 0.05 cm (no gain), code at 4.5 pt (≈ 2 lines), Tahoma/Verdana (too wide), Calibri (small x-height).
 
@@ -45,7 +45,7 @@ When the material does not fill two sides (`measure_layout.py` then prints the f
 
 Swap, do not squeeze: remove one-liners that the review lecture does not name, no quiz asked about and no Summary page mentions, and put the higher-priority gaps in their place. Merging a gap into an existing card or one-liner usually costs ~1 line, a new one-liner 2–4 lines.
 
-A figure is the most expensive block (≈ 4.8 lines per cm at 5 pt): before cutting points, shrink it (`![70%](…)`) or replace it with a text diagram.
+A figure is the most expensive block (≈ 5.3 lines per cm at 4.5 pt): before cutting points, shrink it (`![70%](…)`) or replace it with a text diagram.
 
 ## Pitfalls seen in practice
 

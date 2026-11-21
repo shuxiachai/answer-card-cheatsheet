@@ -1,8 +1,8 @@
 """检查「答题卡式」cheatsheet 的 Markdown 母版（排版之前跑一次）。
 
 用法：
-    python check_master.py 你的cheatsheet.md [--font 4.5]
---font 是打算排的字号（默认 5），用来算图片占几行、图里的字要多大。
+    python check_master.py 你的cheatsheet.md [--font 5]
+--font 是打算排的字号（默认 4.5），用来算图片占几行、图里的字要多大。
 「错误」是排出来会出问题的地方（颜色错位、颜色键原样印出、Q 行指向不存在的要点……），必须改；
 「提醒」是 references/format.md 里的写法规则（缺 Q 行、标签不会着色、英文句子里混了中文、太长……），看情况改。
 「图片」列出每张图按栏宽缩放后大约占几行，以及图里的字至少要多大（按页边距 0 估算）。
@@ -17,7 +17,7 @@ sys.stdout.reconfigure(encoding="utf-8")
 sys.stderr.reconfigure(encoding="utf-8")
 ap = argparse.ArgumentParser(description="检查答题卡式 cheatsheet 的 Markdown 母版")
 ap.add_argument("master", help="Markdown 母版")
-ap.add_argument("--font", type=float, default=5.0, help="打算排的字号（pt），默认 5")
+ap.add_argument("--font", type=float, default=4.5, help="打算排的字号（pt），默认 4.5")
 args = ap.parse_args()
 FONT = args.font
 
