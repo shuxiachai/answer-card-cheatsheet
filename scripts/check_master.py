@@ -1,11 +1,13 @@
 """检查「答题卡式」cheatsheet 的 Markdown 母版（排版之前跑一次）。
 
 用法：
-    python check_master.py 你的cheatsheet.md [--font 5]
---font 是打算排的字号（默认 4.5），用来算图片占几行、图里的字要多大。
+    python check_master.py 你的cheatsheet.md [--font 5] [--gap-cm 0.05]
+--font 是打算排的字号（默认 4.5），--gap-cm 是栏间距（默认 0.1），用来算图片占几行、图里的字要多大。
 「错误」是排出来会出问题的地方（颜色错位、颜色键原样印出、Q 行指向不存在的要点……），必须改；
-「提醒」是 references/format.md 里的写法规则（缺 Q 行、标签不会着色、英文句子里混了中文、太长……），看情况改。
+「提醒」是 references/format.md 里的写法规则（缺 Q 行、标签不会着色、英文句子里混了中文、以 It/This 开头、
+写了出处、[ ] 槽太长、太长……），答题卡要点、精简卡和二星单句都查，看情况改。
 「图片」列出每张图按栏宽缩放后大约占几行，以及图里的字至少要多大（按页边距 0 估算）。
+最后一行统计有几句带 [ ] 换词槽、几句可以原样抄。
 有错误时退出码为 1。
 """
 import argparse
@@ -18,6 +20,7 @@ sys.stderr.reconfigure(encoding="utf-8")
 ap = argparse.ArgumentParser(description="检查答题卡式 cheatsheet 的 Markdown 母版")
 ap.add_argument("master", help="Markdown 母版")
 ap.add_argument("--font", type=float, default=4.5, help="打算排的字号（pt），默认 4.5")
+ap.add_argument("--gap-cm", type=float, default=0.1, help="栏间距（cm），默认 0.1，和 build_cheatsheet.py 的第 5 个参数一致")
 args = ap.parse_args()
 FONT = args.font
 
@@ -34,8 +37,13 @@ CJK = re.compile(r"[㐀-鿿豈-﫿]")
 RANGE_RE = re.compile(r"([" + CIRCLED + r"])\s*[–—\-~～]\s*([" + CIRCLED + r"])")
 IMG_RE = re.compile(r"!\[([^\]]*)\]\(\s*<?([^)>\s]+)>?(?:\s+\"[^\"]*\")?\s*\)")
 
-COL_CM = (29.7 - 4 * 57 / 567) / 5          # 页边距 0 时的一栏宽（栏间距 57 twip）
-LIMITS = {"q_words": 25, "point_words": 40, "card_chars": 1400, "mini_chars": 290, "oneliner_chars": 400}
+COL_CM = (29.7 - 4 * args.gap_cm) / 5       # 页边距 0 时的一栏宽
+LIMITS = {"q_words": 25, "point_words": 40, "card_chars": 1400, "mini_chars": 290, "oneliner_chars": 400,
+          "slot_words": 5}
+# 出处：考场上抄进答案会很怪（"the lecture's …"、"Week 3"、"slide 12"、"p. 4"、"Quiz 2"）
+SOURCE_RE = re.compile(r"\b(lectures?|slides?|tutorials?|textbook|quiz(?:zes)?|week\s*\d+|W\d{1,2}|pp?\.\s*\d+|"
+                       r"pages?\s+\d+)\b", re.I)
+slots = {"with": 0, "without": 0}
 
 src = Path(args.master)
 text = "\n" + src.read_text(encoding="utf-8").replace("\r\n", "\n")
@@ -115,6 +123,24 @@ def check_image(ln, im):
 
 def nonspace(s):
     return len(re.sub(r"\s", "", s.replace("**", "").replace("`", "")))
+
+
+def check_sentence(ln, sentence, what, head):
+    """要点、精简卡、二星单句共用：sentence 是考场上要抄的英文部分（标签或加粗标题后面的文字）。"""
+    text = re.sub(r"（[^）]*）", " ", plain(sentence))          # （中文注）不抄，不查
+    if CJK.search(re.sub(r"\[[^\]]*\]", " ", text)):
+        notes.append((ln, f"{what}的英文句子里有中文（考场上不能照抄）：{head}"))
+    if re.match(r"(It|This|These|They)\b", sentence.strip()):
+        notes.append((ln, f"{what}以 It/This/They 开头，单独抄出来看不懂指的是什么：{head}"))
+    sm = SOURCE_RE.search(text)
+    if sm:
+        notes.append((ln, f"{what}里有出处词「{sm.group(0)}」，抄进答案会很怪：{head}"))
+    found = re.findall(r"\[([^\]]*)\]", text)
+    slots["with" if found else "without"] += 1
+    for s in found:
+        if len(s.split()) > LIMITS["slot_words"]:
+            notes.append((ln, f"{what}的 [ ] 槽有 {len(s.split())} 个词（目标 1–3 个），槽越长考场上要自己写的越多："
+                              f"[{s[:30]}]"))
 
 
 counts = {"★★★★": 0, "★★★ ": 0, "★★ ": 0}
@@ -200,10 +226,13 @@ for ln, raw in enumerate(text.split("\n"), start=offset):
             if key is None:
                 notes.append((ln, f"{'精简卡' if kind == '★★★ ' else '二星单句'}行首没有颜色键（如 {{W3}}），"
                                   f"标题不会着色：{short_title}"))
+            what = "精简卡" if kind == "★★★ " else "二星单句"
             limit = LIMITS["mini_chars"] if kind == "★★★ " else LIMITS["oneliner_chars"]
             if nonspace(line) > limit:
-                notes.append((ln, f"{'精简卡' if kind == '★★★ ' else '二星单句'} {nonspace(line)} 个非空白字符，"
-                                  f"超过 {limit}：{short_title}"))
+                notes.append((ln, f"{what} {nonspace(line)} 个非空白字符，超过 {limit}：{short_title}"))
+            bm = re.match(r"\*\*[^*]*\*\*\s*(.*)", line)
+            if bm and bm.group(1).strip():
+                check_sentence(ln, bm.group(1), what, short_title)
         continue
 
     if line.startswith(("Q:", "用法")):
@@ -227,11 +256,7 @@ for ln, raw in enumerate(text.split("\n"), start=offset):
             sentence = line[1:].strip().split(" ", 1)[-1]
         else:
             sentence = line[tm.end():].strip()
-        body = re.sub(r"（[^）]*）|\[[^\]]*\]", " ", plain(sentence))
-        if CJK.search(body):
-            notes.append((ln, f"要点的英文句子里有中文（考场上不能照抄）：{line[:30]}"))
-        if re.match(r"(It|This|These|They)\b", sentence):
-            notes.append((ln, f"要点以 It/This/They 开头，单独抄出来看不懂指的是什么：{line[:30]}"))
+        check_sentence(ln, sentence, "要点", line[:30])
         n = words(sentence)
         if n > LIMITS["point_words"]:
             notes.append((ln, f"要点 {n} 个英文词，超过 {LIMITS['point_words']}（约一分一句）：{line[:30]}"))
@@ -246,4 +271,7 @@ print(f"答题卡 {counts['★★★★']} 张，精简卡 {counts['★★★ ']
 for label, items in (("错误", errors), ("提醒", notes), ("图片", infos)):
     for ln, msg in sorted(items):
         print(f"  [{label}] 第 {ln} 行：{msg}" if ln else f"  [{label}] {msg}")
+n_sent = slots["with"] + slots["without"]
+if n_sent:
+    print(f"可抄的句子 {n_sent} 句：{slots['without']} 句原样抄，{slots['with']} 句带 [ ] 换词槽（考场上只换槽里的词）")
 sys.exit(1 if errors else 0)

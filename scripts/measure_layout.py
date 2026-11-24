@@ -1,22 +1,26 @@
 """Measure a 5-column cheatsheet PDF built by build_cheatsheet.py.
 
 Usage: python measure_layout.py sheet.pdf [--font PT] [--margin-cm CM] [--gap-cm 0.1] [--short 0.25] [--no-points]
-                                          [--find TEXT ...] [--lines TEXT ...]
+                                          [--find TEXT ...] [--lines TEXT ...] [--cards sheet.md]
 Prints:
 - page count and spare lines at the end (or overflow onto page 3+), counting figures as well as text; when the
   content fills clearly less than two sides, the font size that would roughly fill them;
+- whether the letters sit on a 0.75 pt (96 dpi) grid, which makes small text look unevenly spaced;
 - column-bottom gaps: columns that end one or more lines early because the next block (card title + Q line +
   first point, a code block, a figure) is kept together and did not fit — saving 1–2 lines above such a gap
   pulls the block back and gains the whole gap;
 - paragraphs whose last printed line is less than --short of the column width (cheapest places to save a line),
   marked "pt" for answer-card points (--no-points hides them);
-- where each --find text sits; for each --lines text, every printed line of that paragraph with its fill.
+- every place each --find text appears; for each --lines text, every printed line of that paragraph with its fill;
+- with --cards, where each card, mini card and one-liner of the Markdown master starts (side, column, % down)
+  and, for one that runs on, the column it ends in — the positions to cite in an answer key.
 --font and --margin-cm are read from the PDF when omitted (the most common text size, and the left edge of
 the text); give them explicitly only if the detected values printed on the first line look wrong.
 """
 from collections import Counter
 import argparse
 import math
+import re
 import sys
 
 import fitz  # PyMuPDF
@@ -32,6 +36,7 @@ ap.add_argument("--short", type=float, default=0.25)
 ap.add_argument("--no-points", action="store_true", help="leave answer-card points out of the short-line list")
 ap.add_argument("--find", nargs="*", default=[])
 ap.add_argument("--lines", nargs="*", default=[], help="print every line of the paragraph containing this text")
+ap.add_argument("--cards", metavar="MASTER", help="list where every card and one-liner of this Markdown master starts")
 a = ap.parse_args()
 
 CIRCLED = "①②③④⑤⑥⑦⑧⑨⑩⑪⑫"
@@ -108,6 +113,22 @@ else:
         print(f"  content fills ≈ {used:.0%} of two sides; at ≈ {best:g} pt it would roughly fill them "
               f"(rebuild with font {best:g}, measure again, print-test) — see fitting.md 'Too little content'")
 
+# Word puts every letter on a 0.75 pt (96 dpi) grid in compatibility mode or when the default printer cannot be
+# reached; small text then looks unevenly spaced. A good export has almost no letter steps on that grid.
+steps = on_grid = 0
+for page in doc:
+    for span in page.get_texttrace():
+        xs = [ch[2][0] for ch in span["chars"]]
+        for x0, x1 in zip(xs, xs[1:]):
+            if x1 - x0 > 0.3:
+                steps += 1
+                on_grid += abs((x1 - x0) / 0.75 - round((x1 - x0) / 0.75)) * 0.75 < 0.01
+if steps and on_grid / steps > 0.5:
+    print(f"WARNING uneven letter spacing: {on_grid / steps:.0%} of letter steps fall on a 0.75 pt (96 dpi) grid — "
+          "export with export_pdf.ps1 from a .docx built by build_cheatsheet.py (fitting.md → Pitfalls)")
+elif steps:
+    print(f"letter spacing ok ({on_grid / steps:.1%} of letter steps on the 0.75 pt grid)")
+
 # columns that end early: the next block was kept together and pushed on
 gaps = []
 remainder = col_lines % 1                 # part of a line that never fits at a column bottom
@@ -147,22 +168,69 @@ for f, p in short:
     kind = "pt" if is_point(p) else "  "
     print(f"  {f:.2f}  {col_name(p[0][:2])}  {kind}  {p[0][5][:45]} … {p[-1][5][-30:]}")
 
-for text in a.find:
+for text in a.find:                         # every place the text appears: a phrase can occur in several cards
+    found = []
     for pno, page in enumerate(doc):
-        hits = page.search_for(text)
-        if hits:
-            r = hits[0]
-            c = max(0, min(4, int((r.x0 - m) // (colw + gap))))
-            print(f"  '{text}': side {SIDES[pno]}, column {c + 1}, {(r.y0 - m) / colh:.0%} down")
-            break
-    else:
+        prev = None
+        for r in page.search_for(text):
+            c = max(0, min(4, int(((r.x0 + r.x1) / 2 - m) // (colw + gap))))
+            wrapped = prev is not None and prev[0] == c and 0 <= r.y0 - prev[1] < line_h
+            prev = (c, r.y1)
+            if not wrapped:                 # the second part of a hit that wraps onto the next line is skipped
+                found.append(f"side {SIDES[pno]}, column {c + 1}, {max(0, r.y0 - m) / colh:.0%} down")
+    if not found:
         print(f"  '{text}': not found")
+    else:
+        print(f"  '{text}': " + (found[0] if len(found) == 1 else f"{len(found)} places — " + "; ".join(found)))
+
+
+def para_text(p):
+    """A paragraph's printed lines joined with single spaces (a line ending in a hyphen joins without one)."""
+    out = ""
+    for row in p:
+        t = row[5].strip()
+        out += t if not out or out.endswith("-") else " " + t
+    return re.sub(r"\s+", " ", out)
+
 
 for text in a.lines:
-    hit = [p for p in paras if text in " ".join(row[5] for row in p)]
+    want = re.sub(r"\s+", " ", text).strip()
+    hit = [p for p in paras if want in para_text(p)]
     if not hit:
         print(f"  '{text}': not found (a paragraph broken across columns is listed per column)")
     for p in hit:
         print(f"  '{text}' — {len(p)} lines in {col_name(p[0][:2])}:")
         for row in p:
             print(f"    {row[4] / colw:4.0%}  {row[5]}")
+
+if a.cards:                                 # where each block of the master starts, in master order
+    TITLE_RE = re.compile(r"^(?:\{[^}]*\}\s*)?\*\*(★★★★|★★★ |★★ )\s*(.*?)\*\*")
+    master = "\n" + open(a.cards, encoding="utf-8").read().replace("\r\n", "\n")
+    if "\n## 答题卡\n" in master:
+        master = master.split("\n## 答题卡\n", 1)[1]
+    blocks, fence = [], False
+    for line in master.split("\n"):
+        if line.startswith("```"):
+            fence = not fence
+        elif not fence and TITLE_RE.match(line):
+            blocks.append(TITLE_RE.match(line).groups())
+    flat = [(row, re.sub(r"\s", "", row[5])) for row in rows if row[5] != "[figure]"]
+    flat.append(((0, 0, 0), ""))
+    starts, i = [], 0
+    for kind, title in blocks:              # the printed title (stars stripped) begins a row; search on in order
+        key = re.sub(r"\s", "", title.replace("`", ""))[:14]
+        j = next((j for j in range(i, len(flat) - 1) if (flat[j][1] + flat[j + 1][1]).startswith(key)), None)
+        starts.append(j)
+        if j is not None:
+            i = j + 1
+    found = [j for j in starts if j is not None]
+    print(f"{len(blocks)} blocks in the master, {len(found)} found (start: side+column, % down; → column it ends in):")
+    for (kind, title), j in zip(blocks, starts):
+        if j is None:
+            print(f"  ??         {kind:4} {title[:50]}  (not found)")
+            continue
+        nxt = next((k for k in found if k > j), len(flat) - 1)   # the last entry of flat is an empty sentinel
+        row, end = flat[j][0], flat[nxt - 1][0]
+        runs_on = f" → {col_name(end[:2])}" if end[:2] != row[:2] else ""
+        down = max(0, row[2] - a.font - m) / colh
+        print(f"  {col_name(row[:2])} {down:4.0%}{runs_on:6} {kind:4} {title[:50]}")

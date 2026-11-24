@@ -16,6 +16,27 @@ On Windows the directory is `C:\Users\<you>\.claude\skills\answer-card-cheatshee
 
 Then ask Claude Code something like "帮我做一份这门课的 cheatsheet" or "make an exam cheatsheet in the answer-card format".
 
+## 使用方法
+
+适合「限定开卷、只能带一张 A4 双面」的考试：把可能考的题做成答题卡，考场上找到卡就能整句抄英文答案。
+
+1. **准备资料**（放进项目文件夹，或告诉 Claude 在哪里）
+   - 考试规则：几张纸、单面还是双面、题型和分值。
+   - 复习课、官方模拟卷和答案或评分指南、题库：最重要，卡片句子尽量用评分指南里的关键词。
+   - 各周课件（特别是 Summary 页）、tutorial、quiz。
+   - 同学的 cheatsheet 只用来查漏，不照抄。
+2. **说清要求**，例如「只用来答场景题，选择题我另外背」「不要留白」。
+3. **Claude 会做的**
+   - 每道可能的考题一张答题卡：标题是中文名加题目里会出现的英文关键词；Q 行写问法和要抄第几条；每条要点是一句完整的英文，约 1 分。
+   - 要按题目换的词放在 `[ ]` 里；生僻缩写后面可以加（中文注），抄的时候跳过。
+   - 排成 A4 横向 5 栏、正好两页，生成 `.md`（母版）、`.docx` 和 `.pdf`。
+4. **你要检查的**
+   - 每句能不能直接抄，有没有看不懂的缩写。
+   - 拿官方模拟卷演练一遍：每个小问都能在表上找到要抄的句子，找不到的让 Claude 补。
+   - 改内容时让 Claude 改 `.md`，不要直接改 `.docx`。
+5. **打印**：打印 PDF（版面固定），不要换一台电脑重新打开 `.docx` 再打。默认 4.5 pt，实际考试中打印出来看得清；先打一份确认，看不清就改成 5 pt。
+6. **考场上**：读题 → 用题目里的英文关键词找卡片标题 → 看 Q 行指向第几条 → 整句抄，只换 `[ ]` 里的词，（）里的中文注不抄。
+
 ## Requirements
 
 - Python 3 with `python-docx` and `PyMuPDF` (`pip install python-docx pymupdf`)
@@ -26,11 +47,11 @@ Then ask Claude Code something like "帮我做一份这门课的 cheatsheet" or 
 
 | Path | What it is |
 |---|---|
-| `SKILL.md` | Workflow: collect exam signals, tier the content, write the master, build, fit to two pages, verify |
+| `SKILL.md` | Workflow: collect exam signals, tier the content, write the master, build, fit to two pages, verify, rehearse with a mock exam |
 | `references/format.md` | Exact Markdown syntax of every block, writing rules per question type, colour palette, layout spec |
 | `references/fitting.md` | How to land on two pages: column-bottom gaps, measured compression ladder, too little content, trimming, pitfalls |
-| `scripts/check_master.py` | Checks the master before building (colours, Q-line references, numbering, tags, lengths, figures) |
+| `scripts/check_master.py` | Checks the master before building (colours, Q-line references, numbering, tags, lengths, figures) and every copyable sentence (Chinese, It/This openings, source words, slot length); counts sentences with and without `[slots]` |
 | `scripts/build_cheatsheet.py` | Markdown master → `.docx` (`python build_cheatsheet.py sheet.md [out.docx] [font_pt=4.5] [margin_cm=0] [gap_cm=0.1]`); figures via `![60%](fig.png)` |
 | `scripts/export_pdf.ps1` | Word export of the `.docx` to PDF (relative or absolute paths); uses Microsoft Print to PDF for its own Word session so small text is evenly spaced |
-| `scripts/measure_layout.py` | Page count, spare lines, short last lines, where given text sits (font size and margin detected from the PDF) |
+| `scripts/measure_layout.py` | Page count, spare lines, uneven letter spacing, short last lines, where given text sits, and with `--cards sheet.md` where every card starts (font size and margin detected from the PDF) |
 | `assets/example.md` | A short made-up master (Computer Networks) showing the format |

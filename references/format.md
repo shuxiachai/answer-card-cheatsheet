@@ -14,7 +14,7 @@
 # <Course> Cheatsheet 答题卡（…）
 
 > Notes for the student and for future edits — NOT printed (everything before "## 答题卡" is skipped).
-> 配色: 1=W2 2=W3 B=DESIGN      ← optional: which colour each 〔topic〕 gets (see §4)
+> 配色: 1=W1 2=W2 3=W3 A=DESIGN   ← recommended: topic n gets {Wn} (see §4)
 
 ## 怎么用
 1. …
@@ -24,7 +24,7 @@
 <blocks, separated by one blank line>
 ```
 
-Order of blocks: answer-method group (scenario framework card(s), `{DESIGN}` tool menu, `{EXAM}` format template — only those the exam needs, see SKILL.md step 2), then topic 1, topic 2, … in lecture order; inside each topic: answer cards → mini cards → one-liners.
+Order of blocks: a framework card only if the marking guide has fixed sub-headings (SKILL.md step 2), then topic 1, topic 2, … in lecture order; inside each topic: answer cards → mini cards → one-liners.
 
 ## 2. Block syntax (symbols must match exactly)
 
@@ -37,12 +37,12 @@ Q: Differences between TCP and UDP? → ①–⑤ · When would you use which? �
 ② 无连接 UDP is a connectionless transport protocol that sends independent datagrams without guaranteeing delivery or order.
 ```
 
-- Title line: starts with `**★★★★ `, whole line bold; topic tag in 〔number name〕 (`〔A 答题〕` for the answer-method group) — the build script colours the card from this number; then Chinese name, then English title — or, easier to find from a question, the English keywords a question would use, separated by ` · ` (`**★★★★ 〔1 传输层〕 TCP 与 UDP TCP vs UDP · reliability · handshake · latency · when to use**`). A title may wrap to two lines; the build keeps it in one column. A colour key such as `{DESIGN}` may precede the line to override.
+- Title line: starts with `**★★★★ `, whole line bold; topic tag in 〔number name〕 (`〔A 答题〕` for a framework card) — the build script colours the card from this number; then Chinese name, then English title — or, easier to find from a question, the English keywords a question would use, separated by ` · ` (`**★★★★ 〔1 传输层〕 TCP 与 UDP TCP vs UDP · reliability · handshake · latency · when to use**`). A title may wrap to two lines; the build keeps it in one column. A colour key such as `{DESIGN}` may precede the line to override.
 - Q line: `Q: ` + 1–3 likely question stems (use the sample exam / review lecture wording, paraphrased), each followed by `→` and the point numbers to copy (`①–⑤`, `⑥⑦`); stems separated by ` · `; ≤ 25 English words. Chinese notes may follow in （）. A card that is a tool rather than a question (e.g. a template) may use a `用法：…` line instead; it is printed the same way.
 - Points: `①`…`⑦`, a space, a tag, a space, one complete English sentence of 15–30 words (≈ 1 mark). Official marking points first, example last or second-to-last. Keep an official answer guide's own wording even when it makes a sentence longer (up to ≈ 40 words) or a card longer (up to ⑧).
 - Tag: normally a 2–4 character Chinese tag (定义 / 区别 / 原因 / 选择 / 例子 / 局限 …). In a scenario/design framework card the tag is the official English sub-heading with a colon instead (`① Data Sources:`, up to three words). A tag that contains Latin letters (`TCP定义`, `FCFS`, `TLB`) is not recognised and stays uncoloured, so use a Chinese word instead (先来先服务, 快表); 2–4 characters is a target, 5 is fine.
 - Slots: a `[bracketed]` phrase of 1–3 words marks what the student swaps for the question's data (asset, person, data type), e.g. `Revoke [the leaked token] immediately`. Any card may use slots; keep everything outside the brackets generic (no nouns from one particular scenario), so the rest is copied unchanged.
-- Abbreviation gloss: an obscure abbreviation inside a sentence may be followed by a short Chinese gloss in full-width brackets, e.g. `ECDHE（密钥协商）`, `HSTS（强制 HTTPS）`. The student skips it when copying, and `check_master.py` ignores text in （）. Add one only where it costs no line (fitting.md → Adding without a new line), and check in the PDF that it did not wrap away from its abbreviation.
+- Abbreviation gloss: an obscure abbreviation inside a sentence may be followed by a short Chinese gloss in full-width brackets, e.g. `ECDHE（密钥协商）`, `HSTS（强制 HTTPS）`, with no space before or after the brackets (full-width brackets already carry their own white space: `use IAM（身份权限）roles`). The student skips it when copying, and `check_master.py` ignores text in （）. Add one only where it costs no line (fitting.md → Adding without a new line), and check in the PDF that it did not wrap away from its abbreviation.
 - No blank lines inside a card except around tables and code fences.
 - Length: 120–190 English words per card (syntax and scenario cards up to ≈ 1,400 characters).
 
@@ -155,5 +155,5 @@ Everything is printed at **one size** (argument 3: default 4.5 pt, print-tested;
 ## 6. Capacity and self-check
 
 - Capacity at 4.5 pt ≈ 4,800 non-space characters per column, ≈ 48,000 for both sides; 5 pt holds ≈ 20 % less (≈ 4,000 / 40,000).
-- Before building, run `scripts/check_master.py`. It checks what a script can: card titles bold and coloured, colour keys known, a Q line under every answer card, point numbering continuous, every Q reference pointing to an existing point, tags recognised, no Chinese inside the English sentences (text in full-width （） is ignored), no sentence opening with It/This/They, image files present (with each figure's height in lines), and lengths (Q line ≤ 25 words, point ≤ 40 words, answer card ≤ 1,400, mini card ≤ 290, one-liner ≤ 400 non-space characters). Its limits are deliberately a little looser than the targets above.
-- Still check by hand: each sample-exam part's official points are in the first points of one card, the Q lines point to the *right* points, sentences contain no sources, page or quiz numbers, and the PDF has at most two pages (exactly two when the material fills them).
+- Before building, run `scripts/check_master.py`. It checks what a script can: card titles bold and coloured, colour keys known, a Q line under every answer card, point numbering continuous, every Q reference pointing to an existing point, tags recognised; in every copyable sentence (answer-card points, mini cards, one-liners) no Chinese inside the English (text in full-width （） is ignored), no opening with It/This/These/They, no source words (lecture, slide, tutorial, textbook, quiz, Week 3, W3, p. 4, page 4) and no `[slot]` longer than 5 words; image files present (with each figure's height in lines), and lengths (Q line ≤ 25 words, point ≤ 40 words, answer card ≤ 1,400, mini card ≤ 290, one-liner ≤ 400 non-space characters). Its limits are deliberately a little looser than the targets above. It ends with how many sentences are copied as they are and how many carry a slot.
+- Still check by hand: each sample-exam part's official points are in the first points of one card, the Q lines point to the *right* points, every slot is something the question supplies, and the PDF has at most two pages (exactly two when the material fills them).
