@@ -14,8 +14,8 @@ The format was refined through repeated printing tests; the details below are wh
 Paths are relative to this skill's directory (the base directory shown when the skill loads, written `<skill>` below); the user's files stay in their own project folder.
 
 - `scripts/check_master.py` — checks the Markdown master before building: errors the build would get wrong (uncoloured or shifted colours, unknown colour keys, Q lines pointing to missing points, broken numbering, unpaired `**`) and reminders from the format rules (missing Q line, unrecognised tag, Chinese in an English sentence, too long), plus each figure's height in lines and minimum label size at the size given with `--font` (default 4.5). Exit code 1 on errors.
-- `scripts/build_cheatsheet.py` — Markdown master → `.docx` with the full layout (fonts, colours, columns, spacing). `python build_cheatsheet.py sheet.md [out.docx] [font_pt=4.5] [margin_cm=0]`; it also prints warnings such as a card title without `**`. Figures (`![60%](fig.png)` on their own line) are scaled to the column.
-- `scripts/export_pdf.ps1` — Word (COM) export of the `.docx` to PDF on Windows; relative paths are fine.
+- `scripts/build_cheatsheet.py` — Markdown master → `.docx` with the full layout (fonts, colours, columns, spacing). `python build_cheatsheet.py sheet.md [out.docx] [font_pt=4.5] [margin_cm=0] [gap_cm=0.1]` (the last is the column gap; measure with the same `--gap-cm`); it also prints warnings such as a card title without `**`. Figures (`![60%](fig.png)` on their own line) are scaled to the column.
+- `scripts/export_pdf.ps1` — Word (COM) export of the `.docx` to PDF on Windows; relative paths are fine. It switches its own Word session (not the Windows default printer) to Microsoft Print to PDF, because an unreachable default printer makes Word snap letters to a 96-dpi grid.
 - `scripts/measure_layout.py` — page count, spare or overflow lines (figures included), columns that end early because the next kept-together block was pushed on, paragraphs with short last lines (`pt` = answer-card point; `--no-points` hides them), where given text sits (`--find`), and every line of a paragraph with its fill (`--lines`). When the content fills far less than two sides it suggests a font size. Font size and margin are read from the PDF.
 - `references/format.md` — the exact Markdown syntax of every block, writing rules per question type, layout spec and colour palette. **Read it before writing any content.**
 - `references/fitting.md` — how to land on two pages: reading the measure output, column-bottom gaps, the measured compression ladder, too little content, trimming, and pitfalls.
@@ -36,11 +36,13 @@ When there are many lecture PDFs, extract the text with PyMuPDF and split the re
 - **★★★ mini card** — every topic the review lecture names that has no card yet; 1–2 sentences.
 - **★★ one-liner** — Summary-page points, quiz facts, typical MCQ traps, and **code templates** for variant code questions (SQL with WHERE/GROUP BY/HAVING, DDL with keys, the course's library calls). One sentence, sometimes with inline code.
 
+When the user keeps MCQ material elsewhere and wants the sheet for written or scenario questions only, drop MCQ-only one-liners, traps and tables (a table cannot be copied into an answer as sentences) and spend the space on answer cards for scenario sub-questions.
+
 Keep a gap list (what is not on the sheet, with lecture/page and importance) in the master's header notes, which are not printed. It is what you fill from when space frees up and what you swap against when it does not.
 
 ### 3. Write the master
 
-Follow `references/format.md` exactly: header notes (not printed), the line `## 答题卡`, then blocks **grouped by topic** in lecture order — first the answer-method group, then for each topic its answer cards → mini cards → one-liners. Answer cards take their colour from the 〔topic〕 in the title; every mini card and one-liner starts with the colour key of its topic's answer cards, such as `{W9}` (format.md §4 — with the default mapping, topic 1 is `{W2}`). Sentences are complete English sentences (the review lecture asks for them), self-contained (no "It/This" pointing back), with code in backticks.
+Follow `references/format.md` exactly: header notes (not printed), the line `## 答题卡`, then blocks **grouped by topic** in lecture order — first the answer-method group, then for each topic its answer cards → mini cards → one-liners. Answer cards take their colour from the 〔topic〕 in the title; every mini card and one-liner starts with the colour key of its topic's answer cards, such as `{W9}` (format.md §4 — with the default mapping, topic 1 is `{W2}`). Sentences are complete English sentences (the review lecture asks for them), self-contained (no "It/This" pointing back), with code in backticks. Where a sentence must name the scenario's asset, person or data, put it in a short `[slot]` of 1–3 words (in any card, not only framework cards) and keep everything outside the brackets generic, so the sentence is copied with only that swap. Card titles carry the English words a question would use (format.md §2), so a card is found from the question's wording.
 
 Draw diagrams as text (a code block with ├─ └─, a line of arrows, a table); add an image only when the shape itself is the answer, and weigh its cost in lines (`references/format.md` → Figures).
 
@@ -68,7 +70,7 @@ Use `references/fitting.md`. In short, read the measure output top-down:
 - **Spare space:** add from the gap list in priority order.
 - **Far too little content** (the script then suggests a font size): see "Too little content" in fitting.md. Never invent content to fill space.
 
-Leave 1–2 lines of slack so a different Word or printer does not spill onto page 3. Never go past two pages.
+Leave 1–2 lines of slack so a different Word or printer does not spill onto page 3. Never go past two pages. If the user wants no white space, filling to a fraction of a line is fine as long as they print the PDF (its layout is fixed) rather than re-opening the `.docx` elsewhere; tell them so.
 
 ### 6. Verify and deliver
 
@@ -76,6 +78,7 @@ Leave 1–2 lines of slack so a different Word or printer does not spill onto pa
 - Every sample-exam part and review-lecture example question can be answered by copying sentences from one card; check that the Q lines point to the right numbers (the script only checks that those numbers exist).
 - Re-measure after every change, and if other documents quote card locations (e.g. a sample-exam answer key "B side, column 2, middle"), update them.
 - Ask the user to **print one copy** and check legibility before the exam; small fonts read differently on paper than on screen.
+- Zoom into the PDF and check that letter spacing is even; if letters cluster or touch, see the letter-spacing pitfall in `references/fitting.md`.
 - The PDF has at most two pages: exactly two when the material fills them, otherwise what it fills at the chosen size.
 - Deliver `.md` (master — edit this, not the `.docx`), `.docx` (print this) and `.pdf` (preview). Keep the previous version when making a variant (e.g. a 5 pt edition) instead of overwriting it.
 
@@ -97,5 +100,6 @@ An explicit user request (e.g. "add this picture") overrides the soft rules here
 - 4.5 pt by default, exact line height = 1.18 × font size (4.5 pt → 5.3 pt): it read fine in a print test and holds ≈ 1.4 columns more than 5 pt. Use 5 pt (→ 5.9 pt) when the user's print test is hard to read or the content does not need the space.
 - Inline code Arial Narrow (saves ≈ 12 lines); code blocks Consolas and kept in one column (a DOM tree needs monospace alignment).
 - One size for everything; titles stand out by fill, colour and bold only. The per-element font / weight / colour / background table is in `references/format.md` → "Font and style table", including what to change when a font is missing.
+- Word 2013+ layout (the build sets `compatibilityMode` 15) and a local printer during export (`export_pdf.ps1`): otherwise Word puts every letter on a 0.75 pt (96 dpi) grid and 4.5 pt text looks unevenly spaced.
 - 0 margins printed fine on an ordinary office laser printer; use 0.5 cm if a printer clips the edges.
 - No answer-template card: generic sentence frames proved low value once every card is written in those patterns.

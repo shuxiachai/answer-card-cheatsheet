@@ -23,11 +23,12 @@ Always measure with `scripts/measure_layout.py` after each build; the numbers be
 | Save 1–2 lines above a column-bottom gap so the pushed block moves back | the whole gap (often 3–4 lines) | none |
 | Shorten paragraphs whose last line is < 25 % full (2–4 words each, keep every point) | up to ≈ 30 lines | changes the copy-ready sentences; the user should reread them |
 | Column gap 0.2 → 0.1 cm | ≈ 12 lines | text close to the rule |
+| Column gap 0.1 → 0.05 cm (build argument 5; measure with `--gap-cm 0.05`) | ≈ 1 line on one sheet | at 0 the rule runs through the first letters |
 | Inline code Arial Narrow | ≈ 12–16 lines | code less distinct |
 | Line height 1.2 → 1.18 × font | ≈ 10–16 lines | barely visible |
 | Font 5 → 4.5 pt (the default since; smaller sizes were not tested) | ≈ 160 lines (1.4 columns) | must pass a print test |
 
-Moves that did **not** pay off: letter spacing −0.1 pt (crowded on paper), Arial Narrow for body text (hard to read), hyphenation (split words get copied wrongly), column gap 0.05 cm (no gain), code at 4.5 pt (≈ 2 lines), Tahoma/Verdana (too wide), Calibri (small x-height).
+Moves that did **not** pay off: letter spacing −0.1 pt (crowded on paper), Arial Narrow for body text (hard to read), hyphenation (split words get copied wrongly), column gap 0 (the separator rule touches the letters), code at 4.5 pt (≈ 2 lines), Tahoma/Verdana (too wide), Calibri (small x-height).
 
 ## Too little content
 
@@ -40,6 +41,10 @@ When the material does not fill two sides (`measure_layout.py` then prints the f
 ## Finding short last lines
 
 `measure_layout.py --short 0.25` lists paragraphs whose last printed line is less than a quarter full. Cutting slightly more characters than that last line holds (fill × ≈ 66 characters at 5 pt, × ≈ 73 at 4.5 pt, plus a few) usually saves the line. Prefer cutting redundant phrases, long synonyms or secondary examples; never cut a marking point. If a cut does not save the line, a long word at the end of the previous line is probably not moving up: `measure_layout.py --lines "<text of the paragraph>"` prints every line with its fill. Use `--no-points` when the user does not want answer-card points touched.
+
+## Adding without a new line
+
+`measure_layout.py --lines "<text>"` prints how full each line of a paragraph is (a fill, not a position on the page). Words added to a paragraph whose last line still has room cost no line: at 4.5 pt with 0 margins a CJK character or full-width bracket takes ≈ 2.7 % of a line and a Latin character ≈ 1.4 %. Use this for glosses and short additions when the sheet is full, then check the PDF: Word may break a line before a （ or inside Chinese text, which separates a gloss from its word.
 
 ## When content still does not fit
 
@@ -55,3 +60,7 @@ A figure is the most expensive block (≈ 5.3 lines per cm at 4.5 pt): before cu
 - pandoc puts the inline-code character style on code-block runs too; the build script resets those runs to Consolas and keeps the block in one column.
 - Long inline code without spaces wraps badly; add spaces inside JSON/XML examples.
 - Keep a backup of the master before bulk edits, and after any layout change update documents that cite card positions.
+- Uneven letter spacing (letters clustering or touching at 4.5 pt): Word puts each letter on a 0.75 pt (96 dpi) grid when the document is in compatibility mode or when the Windows default printer cannot be reached (e.g. a network print queue). The build sets Word 2013+ layout and `export_pdf.ps1` selects Microsoft Print to PDF for its own Word session. To check a PDF, count the letter advances (differences between consecutive `chars` x positions in PyMuPDF's `page.get_texttrace()`) that are whole multiples of 0.75 pt: near 0 % is fine, a snapped export shows > 90 %. Never set `Word.ActivePrinter` through COM: it changes the Windows default printer.
+- `measure_layout.py --find` can name the wrong column for a one-liner (hanging indent); confirm with PyMuPDF `page.search_for` before writing a position into another document.
+- With the user's agreement, cards may run on from side A to side B (only the title, Q line and first point are kept together); then nothing needs shortening just to end side A between cards.
+- When the sheet is filled to less than a line of slack, print the PDF: its layout is fixed, while the `.docx` reflows with another Word version or default printer.

@@ -16,6 +16,13 @@ try {
 $word.Visible = $false
 $word.DisplayAlerts = 0
 try {
+  # Word lays text out with the active printer's metrics. If the Windows default printer is an
+  # unreachable network queue, Word falls back to 96 dpi and snaps every letter to 0.75 pt, so small
+  # text looks unevenly spaced. Use a local 600-dpi printer for this Word session only
+  # (DoNotSetAsSysDefault = 1 leaves the Windows default printer unchanged).
+  try {
+    [void][System.__ComObject].InvokeMember("FilePrintSetup", [System.Reflection.BindingFlags]::InvokeMethod, $null, $word.WordBasic, @("Microsoft Print to PDF", 1), $null, $null, @("Printer", "DoNotSetAsSysDefault"))
+  } catch { Write-Warning "Could not select Microsoft Print to PDF for this session; letter spacing may be uneven." }
   $doc = $word.Documents.Open($Docx, $false, $true)
   try {
     $doc.ExportAsFixedFormat($Pdf, 17)

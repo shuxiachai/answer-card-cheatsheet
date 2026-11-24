@@ -14,8 +14,8 @@ A4 横向、5 栏自动分栏、页边距 0、Segoe UI + 微软雅黑 4.5 pt、�
 （排版时会删掉，不占版面）。卡片标题要用 ** 加粗，否则标题不会着色（脚本会提示）。
 
 用法：
-    python build_cheatsheet.py 你的cheatsheet.md [输出.docx] [字号，默认 4.5] [页边距 cm，默认 0]
-（打印机印不到纸边的话，页边距写 0.5。）
+    python build_cheatsheet.py 你的cheatsheet.md [输出.docx] [字号，默认 4.5] [页边距 cm，默认 0] [栏间距 cm，默认 0.1]
+（打印机印不到纸边的话，页边距写 0.5。栏间距写 0 时分隔线紧贴文字；量版面时给 measure_layout.py 加 --gap-cm 同一数值。）
 需要：pandoc 和 python-docx（pip install python-docx）。pandoc 依次在这些地方找：环境变量 PANDOC
 （pandoc 可执行文件的完整路径）→ PATH → RStudio / Quarto 自带的那份（<RStudio>/resources/app/bin/quarto/bin/tools/）。
 图片：单独一行写 ![60%](图.png)，路径相对于 .md 所在的文件夹；方括号里的百分比是占栏宽的比例（不写就是 100%）。
@@ -83,6 +83,7 @@ src = Path(sys.argv[1])
 out = Path(sys.argv[2]) if len(sys.argv) > 2 else src.with_suffix(".docx")
 FONT_PT = float(sys.argv[3]) if len(sys.argv) > 3 else 4.5
 MARGIN_CM = float(sys.argv[4]) if len(sys.argv) > 4 else 0.0
+GAP_TWIPS = round((float(sys.argv[5]) if len(sys.argv) > 5 else 0.1) / 2.54 * 1440)   # 栏间距，cm → twip
 HALF = str(int(round(FONT_PT * 2)))
 LINE = Pt(FONT_PT * 1.18)         # 行距固定值（4.5 pt 字 → 5.3 pt，5 pt → 5.9 pt）：否则含中文的行会比纯英文的行高
 LATIN, EA, MONO, NARROW = "Segoe UI", "微软雅黑", "Consolas", "Arial Narrow"
@@ -236,10 +237,37 @@ for old in sectPr.findall(qn("w:cols")):
     sectPr.remove(old)
 cols = OxmlElement("w:cols")
 cols.set(qn("w:num"), "5")
-cols.set(qn("w:space"), "57")       # 栏间距 0.1 cm
+cols.set(qn("w:space"), str(GAP_TWIPS))   # 栏间距（默认 0.1 cm = 57 twip）
 cols.set(qn("w:sep"), "1")          # 分隔线
 sectPr.append(cols)
-COL_EMU = (sec.page_width - sec.left_margin - sec.right_margin - 4 * 57 * 635) // 5   # 一栏宽（1 twip = 635 EMU）
+COL_EMU = (sec.page_width - sec.left_margin - sec.right_margin - 4 * GAP_TWIPS * 635) // 5   # 一栏宽（1 twip = 635 EMU）
+
+# ---- 4b. 兼容模式：标为 Word 2013+（compatibilityMode 15）--------------------------------------------
+# pandoc 的 .docx 不写兼容模式，Word 就按旧版兼容模式排版，把每个字母的位置取整到 96 dpi 像素（0.75 pt）；
+# 4.5–5 pt 的小字因此字距忽紧忽松（实测一半字母对偏离 > 0.2 pt）。版本 15 的排版定位更细，误差约减半。
+# 注意：这会让断行略有变化，改动后要重新量页数。
+_settings = doc.settings.element
+_compat = _settings.find(qn("w:compat"))
+if _compat is None:
+    _compat = OxmlElement("w:compat")
+    _after = [qn(t) for t in ("w:docVars", "w:rsids", "w:attachedSchema", "w:themeFontLang",
+                              "w:clrSchemeMapping", "w:doNotIncludeSubdocsInStats", "w:doNotAutoCompressPictures",
+                              "w:forceUpgrade", "w:captions", "w:readModeInkLockDown", "w:smartTagType",
+                              "w:schemaLibrary", "w:shapeDefaults", "w:doNotEmbedSmartTags", "w:decimalSymbol",
+                              "w:listSeparator")]
+    _nxt = next((c for c in _settings if c.tag in _after or c.tag.endswith("}mathPr")), None)
+    if _nxt is not None:
+        _nxt.addprevious(_compat)
+    else:
+        _settings.append(_compat)
+for _cs in _compat.findall(qn("w:compatSetting")):
+    if _cs.get(qn("w:name")) == "compatibilityMode":
+        _compat.remove(_cs)
+_cs = OxmlElement("w:compatSetting")
+_cs.set(qn("w:name"), "compatibilityMode")
+_cs.set(qn("w:uri"), "http://schemas.microsoft.com/office/word")
+_cs.set(qn("w:val"), "15")
+_compat.append(_cs)
 
 
 # ---- 5. 字体、字号、行距 -------------------------------------------------------------------------
@@ -348,6 +376,8 @@ def format_paragraph(p):
             for r in p.runs:
                 r.font.color.rgb = WHITE
         pf.keep_with_next = True                    # 段前 0：色条本身就能把卡片分开
+        pf.keep_together = True                     # 两行的标题色条不拆到两栏
+        pf.left_indent = pf.right_indent = Pt(2)    # Word 的段落底色会向左右各外扩约 1.7 pt，缩进 2 pt 让色条不越过分栏线
     elif t.startswith(("★★★ ", "★★ ")):          # 精简卡 / 二星单句：悬挂缩进，加粗标题着色
         pf.left_indent = Pt(FONT_PT * 1.6)
         pf.first_line_indent = Pt(-FONT_PT * 1.6)
@@ -357,6 +387,7 @@ def format_paragraph(p):
                     r.font.color.rgb = RGBColor.from_string(hue)
     elif t.startswith(("Q:", "用法")):             # Q 行 / 用法行：深灰
         pf.keep_with_next = True
+        pf.keep_together = True                     # 两行的 Q 行不拆到两栏（孤行控制已关，否则会被拆开）
         for r in p.runs:
             r.font.color.rgb = RGBColor(0x40, 0x40, 0x40)
     elif t and t[0] in CIRCLED:                     # 要点：悬挂缩进，"① 标签" 加粗着色
