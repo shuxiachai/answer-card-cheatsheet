@@ -40,7 +40,7 @@ When the material does not fill two sides (`measure_layout.py` then prints the f
 
 ## Finding short last lines
 
-`measure_layout.py --short 0.25` lists paragraphs whose last printed line is less than a quarter full. Cutting slightly more characters than that last line holds (fill × ≈ 66 characters at 5 pt, × ≈ 73 at 4.5 pt, plus a few) usually saves the line. Prefer cutting redundant phrases, long synonyms or secondary examples; never cut a marking point. If a cut does not save the line, a long word at the end of the previous line is probably not moving up: `measure_layout.py --lines "<text of the paragraph>"` prints every line with its fill. Use `--no-points` when the user does not want answer-card points touched.
+`measure_layout.py --short 0.25` lists paragraphs whose last printed line is less than a quarter full. Cutting slightly more characters than that last line holds (fill × ≈ 66 characters at 5 pt, × ≈ 73 at 4.5 pt, plus a few) usually saves the line. Prefer cutting redundant phrases, long synonyms or secondary examples; never cut a marking point, and cut the exam's own keywords last (titles and markers look for them; wording cut only to make a card end at the side boundary was later put back). If a cut does not save the line, a long word at the end of the previous line is probably not moving up: `measure_layout.py --lines "<text of the paragraph>"` prints every line with its fill. Use `--no-points` when the user does not want answer-card points touched.
 
 ## Adding without a new line
 
@@ -48,7 +48,7 @@ When the material does not fill two sides (`measure_layout.py` then prints the f
 
 ## When content still does not fit
 
-Swap, do not squeeze: remove one-liners that the review lecture does not name, no quiz asked about and no Summary page mentions, and put the higher-priority gaps in their place. Merging a gap into an existing card or one-liner usually costs ~1 line, a new one-liner 2–4 lines.
+Swap, do not squeeze: first remove one-liners that repeat a point already on a card, then one-liners that the review lecture does not name, no quiz asked about and no Summary page mentions, and put the higher-priority gaps in their place. Record each removed block in the gap list with the reason (format.md §1). Merging a gap into an existing card or one-liner usually costs ~1 line, a new one-liner 2–4 lines.
 
 A figure is the most expensive block (≈ 5.3 lines per cm at 4.5 pt): before cutting points, shrink it (`![70%](…)`) or replace it with a text diagram.
 

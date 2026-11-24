@@ -19,6 +19,8 @@ Paths are relative to this skill's directory (the base directory shown when the 
 - `scripts/measure_layout.py` — page count, spare or overflow lines (figures included), a warning when Word put the letters on a 96-dpi grid, columns that end early because the next kept-together block was pushed on, paragraphs with short last lines (`pt` = answer-card point; `--no-points` hides them), every place given text appears (`--find`), every line of a paragraph with its fill (`--lines`), and with `--cards sheet.md` where every card and one-liner of the master starts (side, column, % down) and which ones run on into the next column. When the content fills far less than two sides it suggests a font size. Font size and margin are read from the PDF.
 - `references/format.md` — the exact Markdown syntax of every block, writing rules per question type, layout spec and colour palette. **Read it before writing any content.**
 - `references/fitting.md` — how to land on two pages: reading the measure output, column-bottom gaps, the measured compression ladder, too little content, trimming, and pitfalls.
+- `references/companions.md` — optional documents around the sheet: a practice paper with an answer key that labels every sentence by how it was made, an MCQ handout, a review handout.
+- `scripts/md_to_pdf.py` — Markdown → PDF for those documents: pandoc → HTML styled by `assets/handout.css` → Chrome or Edge prints it (`python md_to_pdf.py a.md b.md [--out-dir DIR]`).
 - `assets/example.md` — a short made-up master (Computer Networks) to copy the look from.
 
 ## Workflow
@@ -36,13 +38,13 @@ When there are many lecture PDFs, extract the text with PyMuPDF and split the re
 - **★★★ mini card** — every topic the review lecture names that has no card yet; 1–2 sentences.
 - **★★ one-liner** — Summary-page points, quiz facts, typical MCQ traps, and **code templates** for variant code questions (SQL with WHERE/GROUP BY/HAVING, DDL with keys, the course's library calls). One sentence, sometimes with inline code.
 
-When the user keeps MCQ material elsewhere and wants the sheet for written or scenario questions only, drop MCQ-only one-liners, traps and tables (a table cannot be copied into an answer as sentences) and spend the space on answer cards for scenario sub-questions.
+When the user keeps MCQ material elsewhere and wants the sheet for written or scenario questions only, drop MCQ-only one-liners, traps and tables (a table cannot be copied into an answer as sentences) and spend the space on answer cards for scenario sub-questions. The one-liners then hold real cases to cite as examples and principle sentences that fit many answers; such a sheet may need no mini cards at all. Offer an MCQ handout for what was dropped (`references/companions.md`).
 
 Keep a gap list (what is not on the sheet, with lecture/page and importance) in the master's header notes, which are not printed. It is what you fill from when space frees up and what you swap against when it does not.
 
 ### 3. Write the master
 
-Follow `references/format.md` exactly: header notes (not printed), the line `## 答题卡`, then blocks **grouped by topic** in lecture order — first the framework card if there is one (step 2), then for each topic its answer cards → mini cards → one-liners. Answer cards take their colour from the 〔topic〕 in the title. For a new sheet, put `配色: 1=W1 2=W2 3=W3 …` in the header notes so that topic n is `{Wn}`, and start every mini card and one-liner with its topic's key, such as `{W9}` (format.md §4; without that line the default mapping makes topic 1 `{W2}`). Sentences are complete English sentences (the review lecture asks for them), self-contained (no "It/This" pointing back), with code in backticks. Where a sentence must name the scenario's asset, person or data, put it in a short `[slot]` of 1–3 words (in any card, not only framework cards) and keep everything outside the brackets generic, so the sentence is copied with only that swap. Card titles carry the English words a question would use (format.md §2), so a card is found from the question's wording.
+Follow `references/format.md` exactly: header notes (not printed: exam rules, source priority, the `配色` line, the rebuild commands with every non-default argument, the user's decisions, the gap list) and a short 怎么用, the line `## 答题卡`, then blocks **grouped by topic** in lecture order — first the framework card if there is one (step 2), then for each topic its answer cards → mini cards → one-liners. Answer cards take their colour from the 〔topic〕 in the title. For a new sheet, put `配色: 1=W1 2=W2 3=W3 …` in the header notes so that topic n is `{Wn}`, and start every mini card and one-liner with its topic's key, such as `{W9}` (format.md §4; without that line the default mapping makes topic 1 `{W2}`). Sentences are complete English sentences (the review lecture asks for them), self-contained (no "It/This" pointing back), with code in backticks. Where a sentence must name the scenario's asset, person or data, put it in a short `[slot]` of 1–3 words (in any card, not only framework cards) and keep everything outside the brackets generic, so the sentence is copied with only that swap. Card titles carry the English words a question would use (format.md §2), so a card is found from the question's wording.
 
 Draw diagrams as text (a code block with ├─ └─, a line of arrows, a table); add an image only when the shape itself is the answer, and weigh its cost in lines (`references/format.md` → Figures).
 
@@ -67,7 +69,7 @@ The build needs `pandoc` (≥ 2.x) and `python-docx`. It finds pandoc by itself 
 
 Use `references/fitting.md`. In short, read the measure output top-down:
 - **Overflow:** first pull back blocks pushed to the next column (the "columns end early" list: save 1–2 lines above that gap), then shorten paragraphs whose last printed line is nearly empty (a few words each, no points lost), then drop the lowest-priority one-liners.
-- **Spare space:** add from the gap list in priority order.
+- **Spare space:** add from the gap list in priority order, or give the most-used cards a second title line of question keywords.
 - **Far too little content** (the script then suggests a font size): see "Too little content" in fitting.md. Never invent content to fill space.
 
 Leave 1–2 lines of slack so a different Word or printer does not spill onto page 3. Never go past two pages. If the user wants no white space, filling to a fraction of a line is fine as long as they print the PDF (its layout is fixed) rather than re-opening the `.docx` elsewhere; tell them so.
@@ -75,7 +77,7 @@ Leave 1–2 lines of slack so a different Word or printer does not spill onto pa
 ### 6. Verify and deliver
 
 - `check_master.py` reports no errors.
-- Every sample-exam part and review-lecture example question can be answered by copying sentences from one card; check that the Q lines point to the right numbers (the script only checks that those numbers exist).
+- Every sample-exam part, review-lecture example question and question-bank sub-question can be answered by copying sentences from one card; check that the Q lines point to the right numbers (the script only checks that those numbers exist).
 - Copy audit: read every sentence as the student will copy it into an answer. It names its subject, contains no source words ("the lecture's", "Week 3"), no Chinese outside a （gloss）, and its `[slots]` are short nouns the question supplies. `check_master.py` flags most of these and ends with how many sentences need a slot swap.
 - Re-measure after every change, and if other documents quote card locations (e.g. a sample-exam answer key "B side, column 2, middle"), update them; `measure_layout.py sheet.pdf --cards sheet.md` lists the new positions.
 - Ask the user to **print one copy** and check legibility before the exam; small fonts read differently on paper than on screen.
@@ -85,8 +87,9 @@ Leave 1–2 lines of slack so a different Word or printer does not spill onto pa
 
 ### 7. Rehearse (optional, recommended)
 
-- Answer every official mock or sample exam with the sheet only: for each sub-question, name the card and the points to copy. A sub-question that needs more than a slot swap gets a sentence on its card, or goes to the gap list when there is no room.
-- If the user wants more practice, write a practice paper of new scenarios in the exam's style and an answer key that cites card positions from `measure_layout.py sheet.pdf --cards sheet.md` (e.g. "B2, 50 % down"). Rerun it after every layout change and update the key.
+- Answer every official mock or sample exam with the sheet only: for each sub-question (a question that spans several topics needs a card per sub-question), name the card and the points to copy. A sub-question that needs more than slot swaps and one linking sentence of the student's own gets a sentence on its card, or goes to the gap list when there is no room.
+- If the user wants more practice, write a practice paper of new scenarios in the exam's style, including scenarios that span several topics and asks to compare, prioritise, evaluate or say who must be informed. Its answer key cites card positions from `measure_layout.py sheet.pdf --cards sheet.md` (e.g. "B2, 50 % down") and labels every sentence 【原样】, 【换槽】, 【题干句】 or 【自写一句】 (`references/companions.md`). Rerun `--cards` after every layout change and update the key.
+- Print these documents with `scripts/md_to_pdf.py`.
 
 ## Editing an existing sheet
 

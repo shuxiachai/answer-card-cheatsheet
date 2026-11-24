@@ -32,16 +32,18 @@ Then ask Claude Code something like "帮我做一份这门课的 cheatsheet" or 
    - 排成 A4 横向 5 栏、正好两页，生成 `.md`（母版）、`.docx` 和 `.pdf`。
 4. **你要检查的**
    - 每句能不能直接抄，有没有看不懂的缩写。
-   - 拿官方模拟卷演练一遍：每个小问都能在表上找到要抄的句子，找不到的让 Claude 补。
+   - 拿官方模拟卷和题库演练一遍：每个小问都能在表上找到要抄的句子，找不到的让 Claude 补。
+   - 想多练可以让 Claude 出模拟卷和答案：答案标出每句抄自哪张卡（【原样】【换槽】【题干句】【自写一句】）。选择题不放在表上时，可以另做一份选择题讲义，考前背熟。
    - 改内容时让 Claude 改 `.md`，不要直接改 `.docx`。
 5. **打印**：打印 PDF（版面固定），不要换一台电脑重新打开 `.docx` 再打。默认 4.5 pt，实际考试中打印出来看得清；先打一份确认，看不清就改成 5 pt。
-6. **考场上**：读题 → 用题目里的英文关键词找卡片标题 → 看 Q 行指向第几条 → 整句抄，只换 `[ ]` 里的词，（）里的中文注不抄。
+6. **考场上**：读题 → 用题目里的英文关键词找卡片标题 → 看 Q 行指向第几条 → 整句抄，只换 `[ ]` 里的词，（）里的中文注不抄。一道题跨好几个主题时按小问分别找卡；遇到 compare / prioritise / evaluate，在原句后面补一句自己的话，点明比较、先后或结论。
 
 ## Requirements
 
 - Python 3 with `python-docx` and `PyMuPDF` (`pip install python-docx pymupdf`)
 - `pandoc` 2.x or newer: on PATH, named by the `PANDOC` environment variable, or the copy bundled with RStudio / Quarto (found automatically)
 - Microsoft Word on Windows for `scripts/export_pdf.ps1` (or export the `.docx` to PDF any other way)
+- Google Chrome or Microsoft Edge for `scripts/md_to_pdf.py` (companion documents only)
 
 ## Contents
 
@@ -50,8 +52,11 @@ Then ask Claude Code something like "帮我做一份这门课的 cheatsheet" or 
 | `SKILL.md` | Workflow: collect exam signals, tier the content, write the master, build, fit to two pages, verify, rehearse with a mock exam |
 | `references/format.md` | Exact Markdown syntax of every block, writing rules per question type, colour palette, layout spec |
 | `references/fitting.md` | How to land on two pages: column-bottom gaps, measured compression ladder, too little content, trimming, pitfalls |
+| `references/companions.md` | Optional practice paper and answer key (every sentence labelled by how it was made), MCQ handout, review handout |
 | `scripts/check_master.py` | Checks the master before building (colours, Q-line references, numbering, tags, lengths, figures) and every copyable sentence (Chinese, It/This openings, source words, slot length); counts sentences with and without `[slots]` |
 | `scripts/build_cheatsheet.py` | Markdown master → `.docx` (`python build_cheatsheet.py sheet.md [out.docx] [font_pt=4.5] [margin_cm=0] [gap_cm=0.1]`); figures via `![60%](fig.png)` |
 | `scripts/export_pdf.ps1` | Word export of the `.docx` to PDF (relative or absolute paths); uses Microsoft Print to PDF for its own Word session so small text is evenly spaced |
 | `scripts/measure_layout.py` | Page count, spare lines, uneven letter spacing, short last lines, where given text sits, and with `--cards sheet.md` where every card starts (font size and margin detected from the PDF) |
+| `scripts/md_to_pdf.py` | Markdown → PDF for companion documents (pandoc → HTML → Chrome/Edge print) |
+| `assets/handout.css` | A4 style for those PDFs |
 | `assets/example.md` | A short made-up master (Computer Networks) showing the format |
