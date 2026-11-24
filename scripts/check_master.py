@@ -38,7 +38,7 @@ RANGE_RE = re.compile(r"([" + CIRCLED + r"])\s*[–—\-~～]\s*([" + CIRCLED + 
 IMG_RE = re.compile(r"!\[([^\]]*)\]\(\s*<?([^)>\s]+)>?(?:\s+\"[^\"]*\")?\s*\)")
 
 COL_CM = (29.7 - 4 * args.gap_cm) / 5       # 页边距 0 时的一栏宽
-LIMITS = {"q_words": 25, "point_words": 40, "card_chars": 1400, "mini_chars": 290, "oneliner_chars": 400,
+LIMITS = {"q_words": 25, "point_words": 40, "card_chars": 1600, "mini_chars": 290, "oneliner_chars": 400,
           "slot_words": 5}
 # 出处：考场上抄进答案会很怪（"the lecture's …"、"Week 3"、"slide 12"、"p. 4"、"Quiz 2"）
 SOURCE_RE = re.compile(r"\b(lectures?|slides?|tutorials?|textbook|quiz(?:zes)?|week\s*\d+|W\d{1,2}|pp?\.\s*\d+|"
