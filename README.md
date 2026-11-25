@@ -94,9 +94,9 @@ Then ask Claude Code something like "帮我做一份这门课的 cheatsheet" or 
 | `references/fitting.md` | How to land on two pages: column-bottom gaps, measured compression ladder, too little content, trimming, pitfalls |
 | `references/companions.md` | Optional practice paper and answer key (every sentence labelled by how it was made), MCQ handout, review handout |
 | `scripts/check_master.py` | Checks the master before building (colours, Q-line references, numbering, tags, lengths, figures) and every copyable sentence (Chinese, It/This openings, source words, slot length); counts sentences with and without `[slots]` |
-| `scripts/build_cheatsheet.py` | Markdown master → `.docx` (`python build_cheatsheet.py sheet.md [out.docx] [font_pt=4.5] [margin_cm=0] [gap_cm=0.1]`); figures via `![60%](fig.png)` |
+| `scripts/build_cheatsheet.py` | Markdown master → `.docx` (`python build_cheatsheet.py sheet.md [out.docx] [font_pt=4.5] [margin_cm=0] [gap_cm=0.1] [--keep-with-next]`); a column may end with a card's title or Q line unless `--keep-with-next` is given; figures via `![60%](fig.png)` |
 | `scripts/export_pdf.ps1` | Word export of the `.docx` to PDF (relative or absolute paths); uses Microsoft Print to PDF for its own Word session so small text is evenly spaced |
-| `scripts/measure_layout.py` | Page count, spare lines, uneven letter spacing, short last lines, where given text sits, and with `--cards sheet.md` where every card starts (font size and margin detected from the PDF) |
+| `scripts/measure_layout.py` | Page count, spare lines, uneven letter spacing, column-bottom gaps, columns that end with a card title or Q line, short last lines, where given text sits, and with `--cards sheet.md` where every card starts (font size and margin detected from the PDF) |
 | `scripts/md_to_pdf.py` | Markdown → PDF for companion documents (pandoc → HTML → Chrome/Edge print) |
 | `assets/handout.css` | A4 style for those PDFs |
 | `assets/example.md` | A short made-up master (Computer Networks) showing the format |
