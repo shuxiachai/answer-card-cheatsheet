@@ -3,6 +3,8 @@ A4 横向、5 栏自动分栏、页边距 0、Segoe UI + 微软雅黑 4.5 pt、�
 ★★★★ 标题彩色底白字、Q 行深灰、"① 标签" 加粗着色、精简卡悬挂缩进、紧凑表格、代码灰底。
 为了省地方：行首的 ★★★★ / ★★★ / ★★ 只在 .md 里用来区分卡片类型，排版时删掉；
 标题条、精简卡和二星单句的段前都是 0；关掉孤行控制，栏底不再空出几行；
+卡片标题和 Q 行默认不和下一段绑在同一栏：一栏可以停在标题或 Q 行，卡片接着从下一栏顶上开始，栏底不会空出 1–3 行
+（两行的标题条和 Q 行仍然不拆开）。加 --keep-with-next 就恢复旧做法：标题 + Q 行 + 第一条放在同一栏；
 栏间距 0.1 cm；正文用 Segoe UI、正常字距（比 Arial 收紧字距更清楚，所占宽度差不多）；行内代码用 Arial Narrow（代码块仍用等宽的 Consolas，DOM 树要靠等宽对齐）。
 
 配色：每张卡按主题上色。标题条是深色底白字，
@@ -14,8 +16,9 @@ A4 横向、5 栏自动分栏、页边距 0、Segoe UI + 微软雅黑 4.5 pt、�
 （排版时会删掉，不占版面）。卡片标题要用 ** 加粗，否则标题不会着色（脚本会提示）。
 
 用法：
-    python build_cheatsheet.py 你的cheatsheet.md [输出.docx] [字号，默认 4.5] [页边距 cm，默认 0] [栏间距 cm，默认 0.1]
-（打印机印不到纸边的话，页边距写 0.5。栏间距写 0 时分隔线紧贴文字；量版面时给 measure_layout.py 加 --gap-cm 同一数值。）
+    python build_cheatsheet.py 你的cheatsheet.md [输出.docx] [字号，默认 4.5] [页边距 cm，默认 0] [栏间距 cm，默认 0.1] [--keep-with-next]
+（打印机印不到纸边的话，页边距写 0.5。栏间距写 0 时分隔线紧贴文字；量版面时给 measure_layout.py 加 --gap-cm 同一数值。
+--keep-with-next 可以写在任何位置，不影响前面几个参数的顺序。）
 需要：pandoc 和 python-docx（pip install python-docx）。pandoc 依次在这些地方找：环境变量 PANDOC
 （pandoc 可执行文件的完整路径）→ PATH → RStudio / Quarto 自带的那份（<RStudio>/resources/app/bin/quarto/bin/tools/）。
 图片：单独一行写 ![60%](图.png)，路径相对于 .md 所在的文件夹；方括号里的百分比是占栏宽的比例（不写就是 100%）。
@@ -45,8 +48,12 @@ from docx.text.run import Run
 
 sys.stdout.reconfigure(encoding="utf-8")
 sys.stderr.reconfigure(encoding="utf-8")
-if len(sys.argv) < 2:
+KEEP_WITH_NEXT = "--keep-with-next" in sys.argv[1:]    # 旧做法：标题 + Q 行 + 第一条放在同一栏
+args = [x for x in sys.argv[1:] if x != "--keep-with-next"]
+if not args:
     sys.exit(__doc__)
+if any(x.startswith("--") for x in args):
+    sys.exit("不认识的选项：" + " ".join(x for x in args if x.startswith("--")) + "（只有 --keep-with-next）\n" + __doc__)
 
 
 def find_pandoc():
@@ -79,11 +86,11 @@ PANDOC = find_pandoc()
 if PANDOC is None:
     sys.exit("找不到 pandoc。可以：① 安装 pandoc（https://pandoc.org）；② 把环境变量 PANDOC 设成 pandoc 可执行文件的完整路径。\n"
              "装过 RStudio 或 Quarto 的话，它们自带一份，通常在 <RStudio>/resources/app/bin/quarto/bin/tools/ 或 <Quarto>/bin/tools/。")
-src = Path(sys.argv[1])
-out = Path(sys.argv[2]) if len(sys.argv) > 2 else src.with_suffix(".docx")
-FONT_PT = float(sys.argv[3]) if len(sys.argv) > 3 else 4.5
-MARGIN_CM = float(sys.argv[4]) if len(sys.argv) > 4 else 0.0
-GAP_TWIPS = round((float(sys.argv[5]) if len(sys.argv) > 5 else 0.1) / 2.54 * 1440)   # 栏间距，cm → twip
+src = Path(args[0])
+out = Path(args[1]) if len(args) > 1 else src.with_suffix(".docx")
+FONT_PT = float(args[2]) if len(args) > 2 else 4.5
+MARGIN_CM = float(args[3]) if len(args) > 3 else 0.0
+GAP_TWIPS = round((float(args[4]) if len(args) > 4 else 0.1) / 2.54 * 1440)   # 栏间距，cm → twip
 HALF = str(int(round(FONT_PT * 2)))
 LINE = Pt(FONT_PT * 1.18)         # 行距固定值（4.5 pt 字 → 5.3 pt，5 pt → 5.9 pt）：否则含中文的行会比纯英文的行高
 LATIN, EA, MONO, NARROW = "Segoe UI", "微软雅黑", "Consolas", "Arial Narrow"
@@ -370,12 +377,13 @@ def format_paragraph(p):
         state["cards"] += 1
         strip_stars(p)
     hue = state["hue"]
-    if t.startswith("★★★★"):                      # 答题卡标题：主题色底白字、与下段同页
+    if t.startswith("★★★★"):                      # 答题卡标题：主题色底白字；段前 0，色条本身就能把卡片分开
         shade(p._p.get_or_add_pPr(), hue or GREY_TITLE)
         if hue:
             for r in p.runs:
                 r.font.color.rgb = WHITE
-        pf.keep_with_next = True                    # 段前 0：色条本身就能把卡片分开
+        if KEEP_WITH_NEXT:                          # 默认可以停在栏底，卡片在下一栏接着；--keep-with-next 才与下段同栏
+            pf.keep_with_next = True
         pf.keep_together = True                     # 两行的标题色条不拆到两栏
         pf.left_indent = pf.right_indent = Pt(2)    # Word 的段落底色会向左右各外扩约 1.7 pt，缩进 2 pt 让色条不越过分栏线
     elif t.startswith(("★★★ ", "★★ ")):          # 精简卡 / 二星单句：悬挂缩进，加粗标题着色
@@ -386,7 +394,8 @@ def format_paragraph(p):
                 if r.bold:
                     r.font.color.rgb = RGBColor.from_string(hue)
     elif t.startswith(("Q:", "用法")):             # Q 行 / 用法行：深灰
-        pf.keep_with_next = True
+        if KEEP_WITH_NEXT:
+            pf.keep_with_next = True
         pf.keep_together = True                     # 两行的 Q 行不拆到两栏（孤行控制已关，否则会被拆开）
         for r in p.runs:
             r.font.color.rgb = RGBColor(0x40, 0x40, 0x40)
@@ -484,6 +493,8 @@ with zipfile.ZipFile(out, "w", zipfile.ZIP_DEFLATED) as z:
 print(f"已生成：{out}（答题卡 {card_kinds.count('★★★★')} 张，精简卡 {card_kinds.count('★★★ ')} 张，"
       f"二星单句 {card_kinds.count('★★ ')} 条，图片 {len(doc.inline_shapes)} 张，表格 {len(doc.tables)} 个）。"
       "用 Word 导出 PDF 后用 measure_layout.py 量页数和余量。")
+if KEEP_WITH_NEXT:
+    print("（--keep-with-next：卡片标题 + Q 行 + 第一条放在同一栏）")
 if shutil.which("pandoc") is None:
     print(f"（用的 pandoc：{PANDOC}）")
 for w in warnings:

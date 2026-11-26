@@ -6,9 +6,12 @@ Prints:
 - page count and spare lines at the end (or overflow onto page 3+), counting figures as well as text; when the
   content fills clearly less than two sides, the font size that would roughly fill them;
 - whether the letters sit on a 0.75 pt (96 dpi) grid, which makes small text look unevenly spaced;
-- column-bottom gaps: columns that end one or more lines early because the next block (card title + Q line +
-  first point, a code block, a figure) is kept together and did not fit — saving 1–2 lines above such a gap
-  pulls the block back and gains the whole gap;
+- column-bottom gaps: columns that end one or more lines early because the next block is kept together and did
+  not fit — a code block, a figure, a table's header row with its first row, a two-line title bar or Q line, and
+  in a sheet built with --keep-with-next also card title + Q line + first point; saving 1–2 lines above such a
+  gap pulls the block back and gains the whole gap;
+- columns that end with a card title or its Q line (the card goes on at the top of the next column), so that
+  one stranded at the bottom of side A, where the reader has to turn the sheet, is easy to spot;
 - paragraphs whose last printed line is less than --short of the column width (cheapest places to save a line),
   marked "pt" for answer-card points (--no-points hides them);
 - every place each --find text appears; for each --lines text, every printed line of that paragraph with its fill;
@@ -143,6 +146,40 @@ if gaps:
     print(f"{len(gaps)} columns end early (the next block did not fit; save 1–2 lines above to pull it back):")
     for key, free, nxt, first in gaps:
         print(f"  {col_name(key)} bottom empty ≈ {free:.1f} lines → {col_name(nxt)} starts with: {first[:60]}")
+
+
+def card_start_at_bottom(col):
+    """(kind, row) when a column's last paragraph is a card's title bar or its Q line: kind is 'title',
+    'title + Q' or 'Q', and row is where that title (or, for 'Q', the Q line) begins."""
+    end = len(col)
+    for j in range(len(col) - 1, max(-1, len(col) - 4), -1):   # a Q line: 1–3 rows at the left edge, no point
+        r = col[j]
+        if r[6] or r[3] >= 1.0 or r[5] == "[figure]" or r[5].lstrip()[:1] in CIRCLED:
+            break
+        if r[5].lstrip().startswith(("Q:", "用法")):
+            end = j
+            break
+    t = end
+    while t > 0 and col[t - 1][6]:                              # the title bar above it (one or two rows)
+        t -= 1
+    if t < end:
+        return ("title" if end == len(col) else "title + Q"), t
+    return ("Q", end) if end < len(col) else (None, None)
+
+
+# a build without --keep-with-next lets a column end with a card's title or Q line; list where that happened
+ends = []
+for key in [(p, c) for p in range(len(doc)) for c in range(5) if (p, c) < last]:
+    col = [row for row in rows if row[:2] == key]
+    kind, j = card_start_at_bottom(col)
+    if kind:
+        nxt = (key[0], key[1] + 1) if key[1] < 4 else (key[0] + 1, 0)
+        ends.append((key, kind, nxt, col[j][5]))
+if ends:
+    print(f"{len(ends)} columns end with a card title or Q line (the card goes on at the top of the next column):")
+    for key, kind, nxt, text in ends:
+        turn = "  ← end of the side: the reader turns the sheet" if nxt[0] != key[0] else ""
+        print(f"  {col_name(key)} ends with {kind:9} → {col_name(nxt)}: {text[:45]}{turn}")
 
 paras, cur = [], None
 for row in rows:

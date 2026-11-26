@@ -5,14 +5,16 @@ Always measure with `scripts/measure_layout.py` after each build; the numbers be
 ## Read the measure output in this order
 
 1. `pages=… spare/OVERFLOW …` — how far you are from the target.
-2. `columns end early` — a column whose bottom stayed empty because the next block (card title + Q line + first point, a code block or a figure) is kept together and did not fit, so it moved to the next column. This is the cheapest overflow fix: save 1–2 lines anywhere above the gap in that column and the block moves back, gaining the whole gap. Conversely, cutting lines elsewhere can gain nothing while such a gap absorbs them.
-3. The short-last-line list — the next cheapest savings.
+2. `columns end early` — a column whose bottom stayed empty because the next block is kept together and did not fit, so it moved to the next column: a code block, a figure, a table (Word keeps its header row with the first data row), or a two-line title bar or Q line (under 2 lines). This is the cheapest overflow fix: save 1–2 lines anywhere above the gap in that column and the block moves back, gaining the whole gap. Conversely, cutting lines elsewhere can gain nothing while such a gap absorbs them. By default cards may break right after their title or Q line, so this list is usually short; a sheet built with `--keep-with-next` also keeps title + Q line + first point together, and then card starts leave gaps of 1–3 lines here too.
+3. `columns end with a card title or Q line` — the card goes on at the top of the next column, which costs nothing and needs no fix. The one worth a look is marked "end of the side": the reader has to turn the sheet to read on. If the user minds, save a line or two above it so the Q line and first point join the title on side A, or add a line above it so the title moves on to side B.
+4. The short-last-line list — the next cheapest savings.
 
 ## Moves that cost nothing visible (already in the build script)
 
 | Move | Gain on one sheet |
 |---|---|
 | Widow/orphan control off | ≈ 12 lines (Word otherwise leaves empty lines at column bottoms) |
+| Title and Q line not kept with the next paragraph (`--keep-with-next` turns it back on) | 1–3 lines at each column bottom where a card would start; ≈ 11 lines on a test sheet of 60 cards |
 | Strip leading ★ marks when printing | ≈ 14 lines (some title bars stopped wrapping) |
 | No space before title bars / mini cards | ≈ 14 + 5 lines |
 
@@ -62,5 +64,6 @@ A figure is the most expensive block (≈ 5.3 lines per cm at 4.5 pt): before cu
 - Keep a backup of the master before bulk edits, and after any layout change update documents that cite card positions.
 - Uneven letter spacing (letters clustering or touching at 4.5 pt): Word puts each letter on a 0.75 pt (96 dpi) grid when the document is in compatibility mode or when the Windows default printer cannot be reached (e.g. a network print queue). The build sets Word 2013+ layout and `export_pdf.ps1` selects Microsoft Print to PDF for its own Word session. `measure_layout.py` checks every PDF it measures: it counts the letter steps (differences between consecutive `chars` x positions in PyMuPDF's `page.get_texttrace()`) that are whole multiples of 0.75 pt and warns above 50 % (a good export shows ≈ 0.2 %, a snapped one ≈ 99 %). Never set `Word.ActivePrinter` through COM: it changes the Windows default printer.
 - The same words can occur in several cards, so `measure_layout.py --find` lists every place a phrase appears. For positions to write into another document use `--cards sheet.md`, which follows the master's order.
-- With the user's agreement, cards may run on from side A to side B (only the title, Q line and first point are kept together); then nothing needs shortening just to end side A between cards.
+- With the user's agreement, cards may run on from side A to side B; then nothing needs shortening just to end side A between cards. By default a card may break anywhere after its title bar, so side A can even end with only a title or Q line (the measure output marks it); with `--keep-with-next` at least the title, Q line and first point stay together.
+- Earlier versions of the build script always kept title + Q line + first point together. Rebuilding an older master now reflows it (usually a few lines shorter) and moves card positions: rebuild with `--keep-with-next` to reproduce the old layout, or re-run `--cards` and update every document that cites positions.
 - When the sheet is filled to less than a line of slack, print the PDF: its layout is fixed, while the `.docx` reflows with another Word version or default printer.
