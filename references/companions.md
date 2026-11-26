@@ -10,6 +10,8 @@ Optional documents around the sheet: a practice paper to rehearse copying from i
 
 ## 1. Practice paper and answer key
 
+Before writing new questions, rehearse the official papers: list every sub-question of the mock exams and the question bank in a question list (`assets/example_rehearsal.md`) and run `scripts/rehearse.py sheet.md questions.md --out rehearsal.md --pdf sheet.pdf`. The rehearsal shows each answer as copied from the sheet, with the swapped slot words in bold, the cards and where they start, and how many of the question's words each title holds. It quotes the official sub-questions for the student's own use, so keep it out of anything shared.
+
 Paper: the real exam's sections, marks and language, with new scenarios. Besides questions that one card answers, include the two kinds a sheet alone does not answer:
 - **one scenario across several topics**: each sub-question needs a different card;
 - **compare, prioritise, evaluate or "who must be informed"**: card sentences plus one short sentence of the student's own that states the comparison, the order or the conclusion.
@@ -25,7 +27,7 @@ Answer key, for each sub-question:
 | 【题干句】 | a sentence built from the question's own words |
 | 【自写一句】 | a short sentence that is not on the sheet, joined with *whereas*, *comes first because*, *but … so …* or *should be informed because* |
 
-A sub-question that needs several 【自写一句】 shows a gap: add the sentence to its card, or record it in the gap list. For MCQs, a table of answer, why and where it is on the sheet (or "not on the sheet: MCQ handout"). Write at the top which build the positions refer to, and rerun `--cards` after every layout change.
+A sub-question that needs several 【自写一句】 shows a gap: add the sentence to its card, or record it in the gap list. For MCQs, a table of answer, why and where it is on the sheet (or "not on the sheet: MCQ handout"). Write at the top which build the positions refer to, and after every layout change run `measure_layout.py sheet.pdf --cards sheet.md --update key.md` to rewrite them.
 
 ## 2. MCQ handout
 
