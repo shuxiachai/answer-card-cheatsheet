@@ -1,6 +1,8 @@
 """把「答题卡式」cheatsheet 的 Markdown 排成 Word 版：
 A4 横向、5 栏自动分栏、页边距 0、Segoe UI + 微软雅黑 4.5 pt、行距固定 5.3 pt（字号可以改）、
-★★★★ 标题彩色底白字、Q 行深灰、"① 标签" 加粗着色、精简卡悬挂缩进、紧凑表格、代码灰底。
+★★★★ 标题彩色底白字、Q 行深灰、"① 标签" 着色（标签加粗）、精简卡悬挂缩进、紧凑表格、代码灰底。
+标题条的白字和要点序号 ①② 默认用常规字重：加粗的白字印在色条上显得发糊，常规字重在打印测试和真实考试里都看得清；
+加 --bold-titles 就恢复加粗。
 为了省地方：行首的 ★★★★ / ★★★ / ★★ 只在 .md 里用来区分卡片类型，排版时删掉；
 标题条、精简卡和二星单句的段前都是 0；关掉孤行控制，栏底不再空出几行；
 卡片标题和 Q 行默认不和下一段绑在同一栏：一栏可以停在标题或 Q 行，卡片接着从下一栏顶上开始，栏底不会空出 1–3 行
@@ -16,9 +18,9 @@ A4 横向、5 栏自动分栏、页边距 0、Segoe UI + 微软雅黑 4.5 pt、�
 （排版时会删掉，不占版面）。卡片标题要用 ** 加粗，否则标题不会着色（脚本会提示）。
 
 用法：
-    python build_cheatsheet.py 你的cheatsheet.md [输出.docx] [字号，默认 4.5] [页边距 cm，默认 0] [栏间距 cm，默认 0.1] [--keep-with-next]
+    python build_cheatsheet.py 你的cheatsheet.md [输出.docx] [字号，默认 4.5] [页边距 cm，默认 0] [栏间距 cm，默认 0.1] [--keep-with-next] [--bold-titles]
 （打印机印不到纸边的话，页边距写 0.5。栏间距写 0 时分隔线紧贴文字；量版面时给 measure_layout.py 加 --gap-cm 同一数值。
---keep-with-next 可以写在任何位置，不影响前面几个参数的顺序。）
+--keep-with-next 和 --bold-titles 可以写在任何位置，不影响前面几个参数的顺序。）
 需要：pandoc 和 python-docx（pip install python-docx）。pandoc 依次在这些地方找：环境变量 PANDOC
 （pandoc 可执行文件的完整路径）→ PATH → RStudio / Quarto 自带的那份（<RStudio>/resources/app/bin/quarto/bin/tools/）。
 图片：单独一行写 ![60%](图.png)，路径相对于 .md 所在的文件夹；方括号里的百分比是占栏宽的比例（不写就是 100%）。
@@ -48,12 +50,15 @@ from docx.text.run import Run
 
 sys.stdout.reconfigure(encoding="utf-8")
 sys.stderr.reconfigure(encoding="utf-8")
+FLAGS = ("--keep-with-next", "--bold-titles")
 KEEP_WITH_NEXT = "--keep-with-next" in sys.argv[1:]    # 旧做法：标题 + Q 行 + 第一条放在同一栏
-args = [x for x in sys.argv[1:] if x != "--keep-with-next"]
+BOLD_TITLES = "--bold-titles" in sys.argv[1:]          # 旧做法：标题条白字和要点序号加粗
+args = [x for x in sys.argv[1:] if x not in FLAGS]
 if not args:
     sys.exit(__doc__)
 if any(x.startswith("--") for x in args):
-    sys.exit("不认识的选项：" + " ".join(x for x in args if x.startswith("--")) + "（只有 --keep-with-next）\n" + __doc__)
+    sys.exit("不认识的选项：" + " ".join(x for x in args if x.startswith("--"))
+             + "（只有 " + " 和 ".join(FLAGS) + "）\n" + __doc__)
 
 
 def find_pandoc():
@@ -325,6 +330,7 @@ def shade(el_pr, fill):
 
 # ---- 6. 段落：标题、Q 行、要点、精简卡、代码（按卡片配色） --------------------------------------------
 TAG_RE = re.compile(r"^([" + CIRCLED + r"]\s*(?:[^\sA-Za-z(\[`]+|[A-Z][A-Za-z]*(?: [A-Za-z]+){0,2}:)\s)")
+NUM_RE = re.compile(r"[" + CIRCLED + r"]\s*")
 state = {"hue": None, "cards": 0}
 card_iter = iter(card_colors)
 
@@ -344,6 +350,32 @@ def strip_stars(p):
             r.text = rest[1:] if rest.startswith(" ") else rest
             return
         r.text, eat_space = "", True
+
+
+def split_at(p, k):
+    """在段落第 k 个字符处断开 run（pandoc 会在中英文切换处拆 run，边界不一定落在想要的位置）。"""
+    pos = 0
+    for r in p.runs:
+        n = len(r.text)
+        if pos < k < pos + n:
+            head = copy.deepcopy(r._r)
+            r._r.addprevious(head)
+            Run(head, p).text = r.text[:k - pos]
+            r.text = r.text[k - pos:]
+            return
+        pos += n
+
+
+def runs_between(p, start, end):
+    """段落第 start 到 end 个字符正好对应的那几个 run（必要时先断开）。"""
+    split_at(p, start)
+    split_at(p, end)
+    out, pos = [], 0
+    for r in p.runs:
+        if start <= pos < end and r.text:
+            out.append(r)
+        pos += len(r.text)
+    return out
 
 
 def format_paragraph(p):
@@ -377,11 +409,12 @@ def format_paragraph(p):
         state["cards"] += 1
         strip_stars(p)
     hue = state["hue"]
-    if t.startswith("★★★★"):                      # 答题卡标题：主题色底白字；段前 0，色条本身就能把卡片分开
+    if t.startswith("★★★★"):                      # 答题卡标题：主题色底白字（默认常规字重）；段前 0，色条本身就能把卡片分开
         shade(p._p.get_or_add_pPr(), hue or GREY_TITLE)
-        if hue:
-            for r in p.runs:
+        for r in p.runs:
+            if hue:
                 r.font.color.rgb = WHITE
+            r.font.bold = BOLD_TITLES
         if KEEP_WITH_NEXT:                          # 默认可以停在栏底，卡片在下一栏接着；--keep-with-next 才与下段同栏
             pf.keep_with_next = True
         pf.keep_together = True                     # 两行的标题色条不拆到两栏
@@ -399,28 +432,17 @@ def format_paragraph(p):
         pf.keep_together = True                     # 两行的 Q 行不拆到两栏（孤行控制已关，否则会被拆开）
         for r in p.runs:
             r.font.color.rgb = RGBColor(0x40, 0x40, 0x40)
-    elif t and t[0] in CIRCLED:                     # 要点：悬挂缩进，"① 标签" 加粗着色
+    elif t and t[0] in CIRCLED:                     # 要点：悬挂缩进，"① 标签" 着色；标签加粗，序号默认常规字重
         pf.left_indent = Pt(FONT_PT * 1.05)
         pf.first_line_indent = Pt(-FONT_PT * 1.05)
         m = TAG_RE.match(t)
-        remaining = len(m.group(1)) if m else 0
-        for r in list(p.runs):                      # pandoc 会在中英文切换处拆 run，逐个处理
-            if remaining <= 0:
-                break
-            rt = r.text
-            if len(rt) <= remaining:
-                tag_run = r
-                remaining -= len(rt)
-            else:
-                head = copy.deepcopy(r._r)
-                r._r.addprevious(head)
-                tag_run = Run(head, p)
-                tag_run.text = rt[:remaining]
-                r.text = rt[remaining:]
-                remaining = 0
-            tag_run.font.bold = True
-            if hue:
-                tag_run.font.color.rgb = RGBColor.from_string(hue)
+        if m:
+            num = len(NUM_RE.match(t).group(0))     # "① " 序号和后面的空格
+            for start, end, bold in ((0, num, BOLD_TITLES), (num, len(m.group(1)), True)):
+                for r in runs_between(p, start, end):
+                    r.font.bold = bold
+                    if hue:
+                        r.font.color.rgb = RGBColor.from_string(hue)
 
 
 # ---- 7. 表格：100% 宽、细灰框、紧凑边距、表头用主题色浅底 + 主题色加粗字 -----------------------------------
@@ -495,6 +517,8 @@ print(f"已生成：{out}（答题卡 {card_kinds.count('★★★★')} 张，�
       "用 Word 导出 PDF 后用 measure_layout.py 量页数和余量。")
 if KEEP_WITH_NEXT:
     print("（--keep-with-next：卡片标题 + Q 行 + 第一条放在同一栏）")
+if BOLD_TITLES:
+    print("（--bold-titles：标题条白字和要点序号加粗）")
 if shutil.which("pandoc") is None:
     print(f"（用的 pandoc：{PANDOC}）")
 for w in warnings:
