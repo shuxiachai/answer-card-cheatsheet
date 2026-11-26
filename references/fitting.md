@@ -7,7 +7,8 @@ Always measure with `scripts/measure_layout.py` after each build; the numbers be
 1. `pages=… spare/OVERFLOW …` — how far you are from the target.
 2. `columns end early` — a column whose bottom stayed empty because the next block is kept together and did not fit, so it moved to the next column: a code block, a figure, a table (Word keeps its header row with the first data row), or a two-line title bar or Q line (under 2 lines). This is the cheapest overflow fix: save 1–2 lines anywhere above the gap in that column and the block moves back, gaining the whole gap. Conversely, cutting lines elsewhere can gain nothing while such a gap absorbs them. By default cards may break right after their title or Q line, so this list is usually short; a sheet built with `--keep-with-next` also keeps title + Q line + first point together, and then card starts leave gaps of 1–3 lines here too.
 3. `columns end with a card title or Q line` — the card goes on at the top of the next column, which costs nothing and needs no fix. The one worth a look is marked "end of the side": the reader has to turn the sheet to read on. If the user minds, save a line or two above it so the Q line and first point join the title on side A, or add a line above it so the title moves on to side B.
-4. The short-last-line list — the next cheapest savings.
+4. `answer-card titles: …` and `Q lines wrap` — how many lines the titles take (one of 3+ lines is listed: drop a keyword to save a line) and each Q line that wraps, with the fill of its last line; a wrapped Q line with a nearly empty last line is a cheap line to save. `--titles` lists every title with its last-line fill, which shows where one more keyword still fits when there is spare space.
+5. The short-last-line list — the next cheapest savings.
 
 ## Moves that cost nothing visible (already in the build script)
 
@@ -25,7 +26,8 @@ Always measure with `scripts/measure_layout.py` after each build; the numbers be
 | Save 1–2 lines above a column-bottom gap so the pushed block moves back | the whole gap (often 3–4 lines) | none |
 | Shorten paragraphs whose last line is < 25 % full (2–4 words each, keep every point) | up to ≈ 30 lines | changes the copy-ready sentences; the user should reread them |
 | Column gap 0.2 → 0.1 cm | ≈ 12 lines | text close to the rule |
-| Column gap 0.1 → 0.05 cm (build argument 5; measure with `--gap-cm 0.05`) | ≈ 1 line on one sheet | at 0 the rule runs through the first letters |
+| Column gap 0.1 → 0.05 cm (build argument 5; measure with `--gap-cm 0.05`) | ≈ 1 line on one sheet | text closer to the rule |
+| Column gap 0.05 → 0 cm | ≈ 1 line on one sheet | the text touches the rule; one student accepted it after seeing a side-by-side image, so show one before choosing it |
 | Inline code Arial Narrow | ≈ 12–16 lines | code less distinct |
 | Line height 1.2 → 1.18 × font | ≈ 10–16 lines | barely visible |
 | Font 5 → 4.5 pt (the default since; smaller sizes were not tested) | ≈ 160 lines (1.4 columns) | must pass a print test |

@@ -34,8 +34,9 @@ Then ask Claude Code something like "帮我做一份这门课的 cheatsheet" or 
    - 每句能不能直接抄，有没有看不懂的缩写。
    - 拿官方模拟卷和题库演练一遍：每个小问都能在表上找到要抄的句子，找不到的让 Claude 补。
    - 想多练可以让 Claude 出模拟卷和答案：答案标出每句抄自哪张卡（【原样】【换槽】【题干句】【自写一句】）。选择题不放在表上时，可以另做一份选择题讲义，考前背熟。
+   - 想确认表上的内容都出自课程（比如同学说有课本里没有的内容）：让 Claude 做出处核对，它会列出课程文件里找不到的词和句子，查得到的给出文件和页码。
    - 改内容时让 Claude 改 `.md`，不要直接改 `.docx`。
-5. **打印**：打印 PDF（版面固定），不要换一台电脑重新打开 `.docx` 再打。默认 4.5 pt，实际考试中打印出来看得清；先打一份确认，看不清就改成 5 pt。
+5. **打印**：打印 PDF（版面固定），不要换一台电脑重新打开 `.docx` 再打。默认 4.5 pt，标题和序号不加粗，两次实际考试中打印出来都看得清；先打一份确认，看不清就改成 5 pt。
 6. **考场上**：读题 → 用题目里的英文关键词找卡片标题 → 看 Q 行指向第几条 → 整句抄，只换 `[ ]` 里的词，（）里的中文注不抄。一道题跨好几个主题时按小问分别找卡；遇到 compare / prioritise / evaluate，在原句后面补一句自己的话，点明比较、先后或结论。
 
 ### 第一条消息模板
@@ -69,7 +70,8 @@ Then ask Claude Code something like "帮我做一份这门课的 cheatsheet" or 
 2. 「出一套模拟卷和答案，答案标出每句抄自哪张卡、在第几面第几栏」
 3. 「做选择题复习讲义，转成 PDF」
 4. 「给生僻缩写加中文注」
-5. 考后：「把这次的经验整理进 skill」
+5. 「同学说表上有课本里没有的内容，核对一遍出处」
+6. 考后：「把这次的经验整理进 skill」
 
 小提示：
 
@@ -93,10 +95,11 @@ Then ask Claude Code something like "帮我做一份这门课的 cheatsheet" or 
 | `references/format.md` | Exact Markdown syntax of every block, writing rules per question type, colour palette, layout spec |
 | `references/fitting.md` | How to land on two pages: column-bottom gaps, measured compression ladder, too little content, trimming, pitfalls |
 | `references/companions.md` | Optional practice paper and answer key (every sentence labelled by how it was made), MCQ handout, review handout |
-| `scripts/check_master.py` | Checks the master before building (colours, Q-line references, numbering, tags, lengths, figures) and every copyable sentence (Chinese, It/This openings, source words, slot length); counts sentences with and without `[slots]` |
-| `scripts/build_cheatsheet.py` | Markdown master → `.docx` (`python build_cheatsheet.py sheet.md [out.docx] [font_pt=4.5] [margin_cm=0] [gap_cm=0.1] [--keep-with-next]`); a column may end with a card's title or Q line unless `--keep-with-next` is given; figures via `![60%](fig.png)` |
+| `scripts/check_master.py` | Checks the master before building (colours, Q-line references, numbering, tags, lengths, figures) and every copyable sentence (Chinese, It/This openings, source words, slot length), and points no Q line points to; counts sentences with and without `[slots]` |
+| `scripts/build_cheatsheet.py` | Markdown master → `.docx` (`python build_cheatsheet.py sheet.md [out.docx] [font_pt=4.5] [margin_cm=0] [gap_cm=0.1] [--keep-with-next] [--bold-titles]`); a column may end with a card's title or Q line unless `--keep-with-next` is given; figures via `![60%](fig.png)` |
 | `scripts/export_pdf.ps1` | Word export of the `.docx` to PDF (relative or absolute paths); uses Microsoft Print to PDF for its own Word session so small text is evenly spaced |
-| `scripts/measure_layout.py` | Page count, spare lines, uneven letter spacing, column-bottom gaps, columns that end with a card title or Q line, short last lines, where given text sits, and with `--cards sheet.md` where every card starts (font size and margin detected from the PDF) |
+| `scripts/measure_layout.py` | Page count, spare lines, uneven letter spacing, column-bottom gaps, columns that end with a card title or Q line, title line counts and wrapped Q lines, short last lines, where given text sits, and with `--cards sheet.md` where every card starts (font size and margin detected from the PDF) |
+| `scripts/source_audit.py` | Lists sheet sentences that use words found in none of the course files (PDF, PPTX, DOCX, TXT, MD); `--find` gives the file and page of a term |
 | `scripts/md_to_pdf.py` | Markdown → PDF for companion documents (pandoc → HTML → Chrome/Edge print) |
 | `assets/handout.css` | A4 style for those PDFs |
 | `assets/example.md` | A short made-up master (Computer Networks) showing the format |

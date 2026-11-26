@@ -1,7 +1,7 @@
 """Measure a 5-column cheatsheet PDF built by build_cheatsheet.py.
 
 Usage: python measure_layout.py sheet.pdf [--font PT] [--margin-cm CM] [--gap-cm 0.1] [--short 0.25] [--no-points]
-                                          [--find TEXT ...] [--lines TEXT ...] [--cards sheet.md]
+                                          [--titles] [--find TEXT ...] [--lines TEXT ...] [--cards sheet.md]
 Prints:
 - page count and spare lines at the end (or overflow onto page 3+), counting figures as well as text; when the
   content fills clearly less than two sides, the font size that would roughly fill them;
@@ -12,6 +12,9 @@ Prints:
   gap pulls the block back and gains the whole gap;
 - columns that end with a card title or its Q line (the card goes on at the top of the next column), so that
   one stranded at the bottom of side A, where the reader has to turn the sheet, is easy to spot;
+- how many lines the answer-card titles take (a title of 3+ lines is listed), and Q lines that wrap onto a
+  second line with the fill of their last line; --titles lists every title with its line count and how full its
+  last line is (room for one more keyword or not);
 - paragraphs whose last printed line is less than --short of the column width (cheapest places to save a line),
   marked "pt" for answer-card points (--no-points hides them);
 - every place each --find text appears; for each --lines text, every printed line of that paragraph with its fill;
@@ -37,6 +40,7 @@ ap.add_argument("--margin-cm", type=float, default=None, help="page margin in cm
 ap.add_argument("--gap-cm", type=float, default=0.1)
 ap.add_argument("--short", type=float, default=0.25)
 ap.add_argument("--no-points", action="store_true", help="leave answer-card points out of the short-line list")
+ap.add_argument("--titles", action="store_true", help="list every answer-card title with its lines and last-line fill")
 ap.add_argument("--find", nargs="*", default=[])
 ap.add_argument("--lines", nargs="*", default=[], help="print every line of the paragraph containing this text")
 ap.add_argument("--cards", metavar="MASTER", help="list where every card and one-liner of this Markdown master starts")
@@ -180,6 +184,41 @@ if ends:
     for key, kind, nxt, text in ends:
         turn = "  ← end of the side: the reader turns the sheet" if nxt[0] != key[0] else ""
         print(f"  {col_name(key)} ends with {kind:9} → {col_name(nxt)}: {text[:45]}{turn}")
+
+# answer-card titles (rows on a dark bar; a new title starts with 〔) and Q lines that wrap onto a second row
+titles, qlines, q_cur = [], [], None
+for i, row in enumerate(rows):
+    prev = rows[i - 1] if i else None
+    follows = prev is not None and prev[:2] == row[:2] and 0 < row[2] - prev[2] < line_h * 1.5
+    if row[6]:
+        if titles and follows and prev[6] and not row[5].lstrip().startswith("〔"):
+            titles[-1].append(row)
+        else:
+            titles.append([row])
+    if not row[6] and row[5].lstrip().startswith("Q:"):
+        q_cur = [row]
+        qlines.append(q_cur)
+    elif q_cur is not None and follows and q_cur[-1] is prev and not row[6] and row[5] != "[figure]" \
+            and row[3] < 1.0 and row[5].lstrip()[:1] not in CIRCLED:
+        q_cur.append(row)
+    else:
+        q_cur = None
+if titles:
+    n_lines = Counter(len(t) for t in titles)
+    print(f"{len(titles)} answer-card titles: " + ", ".join(
+        f"{n} take{'s' if n == 1 else ''} {k} line{'s' if k > 1 else ''}" for k, n in sorted(n_lines.items())))
+    for t in titles:
+        if len(t) >= 3 and not a.titles:
+            print(f"  {len(t)} lines  {col_name(t[0][:2])}  {t[0][5][:45]}")
+    if a.titles:                            # last-line fill: room for one more keyword or not
+        for t in titles:
+            print(f"  {len(t)} line{'s' if len(t) > 1 else ' '} last {t[-1][4] / colw:4.0%}  {col_name(t[0][:2])}  "
+                  f"{t[0][5][:45]}")
+wrapped_q = [q for q in qlines if len(q) > 1]
+if qlines:
+    print(f"{len(wrapped_q)} of {len(qlines)} Q lines wrap onto a second line" + (" (last line's fill):" if wrapped_q else ""))
+    for q in wrapped_q:
+        print(f"  {q[-1][4] / colw:.2f}  {col_name(q[0][:2])}  {q[0][5][:45]} … {q[-1][5][-25:]}")
 
 paras, cur = [], None
 for row in rows:

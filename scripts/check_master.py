@@ -4,8 +4,8 @@
     python check_master.py 你的cheatsheet.md [--font 5] [--gap-cm 0.05]
 --font 是打算排的字号（默认 4.5），--gap-cm 是栏间距（默认 0.1），用来算图片占几行、图里的字要多大。
 「错误」是排出来会出问题的地方（颜色错位、颜色键原样印出、Q 行指向不存在的要点……），必须改；
-「提醒」是 references/format.md 里的写法规则（缺 Q 行、标签不会着色、英文句子里混了中文、以 It/This 开头、
-写了出处、[ ] 槽太长、太长……），答题卡要点、精简卡和二星单句都查，看情况改。
+「提醒」是 references/format.md 里的写法规则（缺 Q 行、Q 行没有指到的要点、标签不会着色、英文句子里混了中文、
+以 It/This 开头、写了出处、[ ] 槽太长、太长……），答题卡要点、精简卡和二星单句都查，看情况改。
 「图片」列出每张图按栏宽缩放后大约占几行，以及图里的字至少要多大（按页边距 0 估算）。
 最后一行统计有几句带 [ ] 换词槽、几句可以原样抄。
 有错误时退出码为 1。
@@ -168,6 +168,10 @@ def close_card():
         if missing:
             errors.append((card["qline"], "Q 行指向不存在的要点 " + "".join(CIRCLED[n - 1] for n in missing)
                            + f"：{card['title']}"))
+        unrouted = sorted(set(nums) - refs)
+        if unrouted and card["q"].startswith("Q:"):
+            notes.append((card["qline"], "Q 行没有指到 " + "".join(CIRCLED[n - 1] for n in unrouted)
+                          + f"（从题目找不到这几条：加进 Q 行，或确认只是备用句）：{card['title']}"))
         n = words(card["q"][2:])
         if n > LIMITS["q_words"]:
             notes.append((card["qline"], f"Q 行 {n} 个英文词，超过 {LIMITS['q_words']}：{card['title']}"))
