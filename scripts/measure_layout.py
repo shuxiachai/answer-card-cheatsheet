@@ -1,7 +1,8 @@
 """Measure a 5-column cheatsheet PDF built by build_cheatsheet.py.
 
 Usage: python measure_layout.py sheet.pdf [--font PT] [--margin-cm CM] [--gap-cm 0.1] [--short 0.25] [--no-points]
-                                          [--titles] [--find TEXT ...] [--lines TEXT ...] [--cards sheet.md]
+                                          [--titles] [--find TEXT ...] [--lines TEXT ...] [--cards sheet.md
+                                          [--update DOC ...]]
 Prints:
 - page count and spare lines at the end (or overflow onto page 3+), counting figures as well as text; when the
   content fills clearly less than two sides, the font size that would roughly fill them;
@@ -19,7 +20,11 @@ Prints:
   marked "pt" for answer-card points (--no-points hides them);
 - every place each --find text appears; for each --lines text, every printed line of that paragraph with its fill;
 - with --cards, where each card, mini card and one-liner of the Markdown master starts (side, column, % down)
-  and, for one that runs on, the column it ends in — the positions to cite in an answer key.
+  and, for one that runs on, the column it ends in — the positions to cite in an answer key;
+- with --cards and --update, rewrites the card positions cited in other Markdown documents (an answer key, a
+  rehearsal, a question-by-question check) to the new layout: a position is a bracket right after a card name,
+  optionally with point numbers — "TCP 与 UDP ③（A1 17%）", "子网划分（B 面第 2 栏 84%）", "(B2, 50% down)" —
+  and keeps its own style; the card name is the start of the card's title (the Chinese name is enough).
 --font and --margin-cm are read from the PDF when omitted (the most common text size, and the left edge of
 the text); give them explicitly only if the detected values printed on the first line look wrong.
 """
@@ -44,7 +49,11 @@ ap.add_argument("--titles", action="store_true", help="list every answer-card ti
 ap.add_argument("--find", nargs="*", default=[])
 ap.add_argument("--lines", nargs="*", default=[], help="print every line of the paragraph containing this text")
 ap.add_argument("--cards", metavar="MASTER", help="list where every card and one-liner of this Markdown master starts")
+ap.add_argument("--update", nargs="+", metavar="DOC", default=[],
+                help="with --cards: rewrite the card positions cited in these Markdown documents")
 a = ap.parse_args()
+if a.update and not a.cards:
+    ap.error("--update needs --cards sheet.md (the master the documents cite)")
 
 CIRCLED = "①②③④⑤⑥⑦⑧⑨⑩⑪⑫"
 doc = fitz.open(a.pdf)
@@ -310,3 +319,61 @@ if a.cards:                                 # where each block of the master sta
         runs_on = f" → {col_name(end[:2])}" if end[:2] != row[:2] else ""
         down = max(0, row[2] - a.font - m) / colh
         print(f"  {col_name(row[:2])} {down:4.0%}{runs_on:6} {kind:4} {title[:50]}")
+
+if a.update:                                # rewrite "card name ②（A2 35%）" tags in other documents
+    where = {}                              # card name (title without stars and 〔topic〕) -> (side, column, % down)
+    for (kind, title), j in zip(blocks, starts):
+        if j is not None:
+            row = flat[j][0]
+            name = re.sub(r"^〔[^〕]*〕\s*", "", title.replace("`", "")).strip()
+            where[name] = (SIDES[row[0]], row[1] + 1, int(f"{max(0, row[2] - a.font - m) / colh:.0%}"[:-1]))   # as --cards prints it
+    # (A2 35%) · （B 面第 2 栏 84%） · (B2, 50% down): side, column and % are replaced, the rest is kept
+    POS_RE = re.compile(r"[（(]\s*([A-G])\s*(?:面\s*第\s*)?([1-5])\s*(?:栏)?\s*[,，]?\s*(\d{1,3})\s*%[^）)\n]{0,8}[）)]")
+    TAIL_RE = re.compile(r"[\s" + CIRCLED + r"–—\-~～、,，*]+$")
+
+    def card_at(before):
+        """The card whose name ends the text just before a position bracket; the longest name that fits wins."""
+        seg = re.split(r"[|｜＋+：:；;。>「“\"（(\[\]]", before)[-1]
+        seg = TAIL_RE.sub("", seg).strip()
+        for i in range(len(seg)):
+            cand = seg[i:].strip()
+            if not cand or (i and seg[i - 1].isascii() and seg[i - 1].isalnum() and cand[0].isascii()):
+                continue                    # do not start inside an English word
+            hits = [n for n in where if n == cand or n.startswith(cand + " ")]
+            exact = [n for n in hits if n == cand]
+            if len(hits) == 1 or exact:
+                return (exact or hits)[0]
+            if hits:
+                return None                 # several cards start with these words: cite more of the name
+        return None
+
+    for path in a.update:
+        raw = open(path, "rb").read()
+        bom = raw.startswith(b"\xef\xbb\xbf")
+        text = raw.decode("utf-8-sig")
+        out, last, changed, same, unknown = [], 0, 0, 0, []
+        for pm in POS_RE.finditer(text):
+            line_start = text.rfind("\n", 0, pm.start()) + 1
+            name = card_at(text[line_start:pm.start()])
+            if name is None:
+                unknown.append(f"line {text.count(chr(10), 0, pm.start()) + 1}: "
+                               f"…{text[max(line_start, pm.start() - 24):pm.end()]}")
+                continue
+            side, col, pct = where[name]
+            tag, s0 = pm.group(0), pm.start()
+            new = (tag[:pm.start(1) - s0] + side + tag[pm.end(1) - s0:pm.start(2) - s0] + str(col)
+                   + tag[pm.end(2) - s0:pm.start(3) - s0] + str(pct) + tag[pm.end(3) - s0:])
+            if new == tag:
+                same += 1
+                continue
+            out.append(text[last:pm.start()] + new)
+            last = pm.end()
+            changed += 1
+        if changed:
+            with open(path, "wb") as f:     # keep the file's own line endings and BOM
+                f.write((b"\xef\xbb\xbf" if bom else b"") + ("".join(out) + text[last:]).encode("utf-8"))
+        print(f"{path}: {changed} positions updated, {same} already current, {len(unknown)} not matched to a card")
+        for u in unknown[:20]:
+            print(f"  {u}")
+        if len(unknown) > 20:
+            print(f"  … and {len(unknown) - 20} more")
