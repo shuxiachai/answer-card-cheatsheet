@@ -96,23 +96,32 @@ for pno, page in enumerate(doc):
                     if not s["text"].strip() or not (cx0 - 2 <= s["bbox"][0] < cx0 + colw - 1):
                         continue
                     k = round(s["origin"][1], 1)
-                    e = r.setdefault(k, [1e9, 0.0, ""])
+                    e = r.setdefault(k, [1e9, 0.0, "", None])
                     # Word often draws the space between two runs as a gap, not a character: put it back
                     if e[2] and s["bbox"][0] - cx0 - e[1] > 0.4 and not e[2].endswith(" ") \
                             and not s["text"].startswith(" "):
                         e[2] += " "
+                    if s["bbox"][0] - cx0 < e[0]:
+                        e[3] = s["color"]            # colour of the row's first letters
                     e[0] = min(e[0], s["bbox"][0] - cx0)
                     e[1] = max(e[1], s["bbox"][2] - cx0)
                     e[2] += s["text"]
                     bottoms[(pno, c)] = max(bottoms.get((pno, c), 0), s["bbox"][3])
         for k in sorted(r):
             bar = any(bb.x0 >= cx0 - 2 and bb.x0 < cx0 + colw and bb.y0 - 1 <= k <= bb.y1 + 1 for bb in bars)
-            rows.append((pno, c, k, *r[k], bar))
+            x0, x1, t, colour = r[k]
+            rows.append((pno, c, k, x0, x1, t, bar, colour))
     for im in page.get_image_info():        # figures take column height too
         x0, y0, x1, y1 = im["bbox"]
         c = max(0, min(4, int((x0 - m + 1) // (colw + gap))))
         bottoms[(pno, c)] = max(bottoms.get((pno, c), 0), min(y1, H - m))
-        rows.append((pno, c, round(y0, 1), 0.0, x1 - x0, "[figure]", False))
+        rows.append((pno, c, round(y0, 1), 0.0, x1 - x0, "[figure]", False, None))
+Q_GREY = 0x404040                           # Q lines and 用法 lines are printed in this grey
+
+
+def starts_point(row):
+    """A row that begins with ①… in a point's colour; a Q line's second row can begin with ⑤ too, but in grey."""
+    return row[5].lstrip()[:1] in CIRCLED and row[7] != Q_GREY
 rows.sort(key=lambda row: row[:3])
 
 last = max(bottoms)
@@ -167,7 +176,7 @@ def card_start_at_bottom(col):
     end = len(col)
     for j in range(len(col) - 1, max(-1, len(col) - 4), -1):   # a Q line: 1–3 rows at the left edge, no point
         r = col[j]
-        if r[6] or r[3] >= 1.0 or r[5] == "[figure]" or r[5].lstrip()[:1] in CIRCLED:
+        if r[6] or r[3] >= 1.0 or r[5] == "[figure]" or starts_point(r):
             break
         if r[5].lstrip().startswith(("Q:", "用法")):
             end = j
@@ -208,7 +217,7 @@ for i, row in enumerate(rows):
         q_cur = [row]
         qlines.append(q_cur)
     elif q_cur is not None and follows and q_cur[-1] is prev and not row[6] and row[5] != "[figure]" \
-            and row[3] < 1.0 and row[5].lstrip()[:1] not in CIRCLED:
+            and row[3] < 1.0 and not starts_point(row):
         q_cur.append(row)
     else:
         q_cur = None
@@ -242,7 +251,7 @@ for row in rows:
 
 
 def is_point(p):
-    return p[0][5].lstrip()[:1] in CIRCLED
+    return starts_point(p[0])
 
 
 short = sorted(((p[-1][4] / colw, p) for p in paras if not p[0][6] and len(p) > 1 and p[-1][4] / colw < a.short
@@ -259,9 +268,12 @@ for text in a.find:                         # every place the text appears: a ph
         prev = None
         for r in page.search_for(text):
             c = max(0, min(4, int(((r.x0 + r.x1) / 2 - m) // (colw + gap))))
-            wrapped = prev is not None and prev[0] == c and 0 <= r.y0 - prev[1] < line_h
-            prev = (c, r.y1)
-            if not wrapped:                 # the second part of a hit that wraps onto the next line is skipped
+            # the rest of a hit that wraps onto the next line, or that goes on in another font on the same line
+            # (e.g. "Costs → ⑦": the circled number is a second box right after the first), is not a new place
+            wrapped = prev is not None and prev[0] == c and (0 <= r.y0 - prev[1] < line_h
+                                                             or (r.y0 < prev[1] and abs(r.x0 - prev[2]) < 1))
+            prev = (c, r.y1, r.x1)
+            if not wrapped:
                 found.append(f"side {SIDES[pno]}, column {c + 1}, {max(0, r.y0 - m) / colh:.0%} down")
     if not found:
         print(f"  '{text}': not found")
