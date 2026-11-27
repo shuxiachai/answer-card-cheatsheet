@@ -4,6 +4,15 @@ A Claude Code skill that builds a dense, colour-coded, exactly-two-page A4 exam 
 
 一个 Claude Code skill：按「答题卡」格式做考试 cheatsheet（A4 横向、正好两页、5 栏、按主题配色）。每张卡对应一道可能的考题，配可以直接抄进试卷的英文句子和方便查找的中文标签。
 
+**Used at the University of Sydney.** Cheatsheets made with this skill were used in the final exams of two postgraduate IT units at the University of Sydney (restricted open book, one double-sided A4 sheet). In both exams the cards were found from the questions' English keywords, and the answers were copied with only the words in `[ ]` changed.
+
+**在悉尼大学实际用过。** 用这个 skill 做的答题卡，在悉尼大学（The University of Sydney）两门研究生 IT 课的期末考试中实际使用（限定开卷，可带一张 A4 双面）。两次考试都能按题目里的英文关键词找到卡片，答案整句抄，只换 `[ ]` 里的词。
+
+<sub>This is a personal project, not affiliated with or endorsed by the University of Sydney. 本项目是个人作品，与悉尼大学没有官方关系。</sub>
+
+<p align="center"><img src="assets/preview.png" width="400" alt="One column of the made-up example sheet: coloured card title bars, Q lines that point to numbered English sentences, a table and one-line facts"></p>
+<p align="center"><sub>One column of the made-up example (<code>assets/example.md</code>) at the default 4.5 pt, enlarged. A full sheet has five such columns on each side of an A4 page.<br>虚构示例的一栏（默认 4.5 pt，已放大）。整张表每面 5 栏。</sub></p>
+
 ## Install
 
 Copy this folder to your personal skills directory, then start a new Claude Code session:
@@ -109,3 +118,4 @@ Then ask Claude Code something like "帮我做一份这门课的 cheatsheet" or 
 | `assets/handout.css` | A4 style for those PDFs |
 | `assets/example.md` | A short made-up master (Computer Networks) showing the format |
 | `assets/example_rehearsal.md` | A question list for `rehearse.py` that goes with `example.md` |
+| `assets/preview.png` | One column of `example.md` as printed, enlarged, for this README |
