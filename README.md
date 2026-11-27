@@ -10,8 +10,34 @@ A Claude Code skill that builds a dense, colour-coded, exactly-two-page A4 exam 
 
 <sub>This is a personal project, not affiliated with or endorsed by the University of Sydney. 本项目是个人作品，与悉尼大学没有官方关系。</sub>
 
+<p align="center"><img src="assets/sheet_blurred.png" alt="Both sides of a real two-page answer-card sheet, pixelated: five columns per side, coloured card title bars, densely packed text"></p>
+<p align="center"><sub>Both sides of a real sheet used in one of those exams (66 cards), pixelated so that no text can be read.<br>其中一场考试实际用的答题卡两面（66 张卡），已打码，文字无法辨认。</sub></p>
+
 <p align="center"><img src="assets/preview.png" width="400" alt="One column of the made-up example sheet: coloured card title bars, Q lines that point to numbered English sentences, a table and one-line facts"></p>
 <p align="center"><sub>One column of the made-up example (<code>assets/example.md</code>) at the default 4.5 pt, enlarged. A full sheet has five such columns on each side of an A4 page.<br>虚构示例的一栏（默认 4.5 pt，已放大）。整张表每面 5 栏。</sub></p>
+
+## 合规使用 · Use it within your exam's rules
+
+- 只用于允许带 cheatsheet 的考试。先看清自己考试的规定：能带几张、多大、单面还是双面、能不能打印。
+- 卡片上的句子要根据你自己的课程材料改写。skill 会按这个要求写，不照抄课件和考题原文；考前你也要把每句读一遍，确认都看得懂。
+- 用课程材料做出来的表只给自己用，不要公开上传或分享：课件、模拟卷和评分指南的版权属于学校和任课老师。这个仓库里只有虚构的示例。
+
+Use it only for exams that allow a cheatsheet, and check your own exam's rules first (how many sheets, what size, one or both sides, printed or not). The sentences are paraphrased from your own course materials, not copied from slides or exam papers; read every one before the exam. Keep sheets made from course materials to yourself: slides, mock exams and marking guides belong to the university and the teaching staff. This repository holds only made-up examples.
+
+## 开始前你需要 · Requirements
+
+| 需要 | 用途 | 怎么装 |
+|---|---|---|
+| [Claude Code](https://claude.com/claude-code)，以及能用它的 Claude 付费订阅或 API 账号 | 运行这个 skill | 见官网 |
+| Windows + Microsoft Word | 把 `.docx` 导出成 PDF（`scripts/export_pdf.ps1`）；排版是在 Windows 版 Word 上测出来的 | — |
+| Python 3，加 `python-docx` 和 `PyMuPDF` | 构建和测量 | `pip install python-docx pymupdf` |
+| pandoc 2.x 或更新 | Markdown 转 Word | `winget install --id JohnMacFarlane.Pandoc`；装过 RStudio 或 Quarto 的话会自动用它们自带的那份，也可以用环境变量 `PANDOC` 指定路径 |
+| Chrome 或 Edge | 只在把讲义等配套文档转成 PDF 时用（`scripts/md_to_pdf.py`） | — |
+
+- 不会装也没关系：装好 Claude Code 后，可以直接让它检查并安装其余几项。
+- Mac 没有测试过：可以先生成 `.docx`，用 Mac 版 Word 另存为 PDF，再用 `measure_layout.py` 量页数。断行和字距可能和 Windows 版不同，一定先打印一份确认。
+
+In short: Claude Code (with a paid Claude plan or an API account), Windows with Microsoft Word for the PDF export, Python 3 with `python-docx` and `PyMuPDF`, pandoc 2.x or newer, and Chrome or Edge for the companion documents only. macOS is untested: build the `.docx`, save it as PDF from Word for Mac, measure it, and print one copy to check.
 
 ## Install
 
@@ -93,13 +119,6 @@ Then ask Claude Code something like "帮我做一份这门课的 cheatsheet" or 
 - 开头的 `/answer-card-cheatsheet` 可以不写，提到 cheatsheet 或「答题卡」一般会自动加载这个 skill；写上能确保加载。
 - 每次都一样的要求可以写进 `~/.claude/CLAUDE.md`（Windows：`C:\Users\<you>\.claude\CLAUDE.md`），所有会话都会读到，prompt 里就不用重复。
 
-## Requirements
-
-- Python 3 with `python-docx` and `PyMuPDF` (`pip install python-docx pymupdf`)
-- `pandoc` 2.x or newer: on PATH, named by the `PANDOC` environment variable, or the copy bundled with RStudio / Quarto (found automatically)
-- Microsoft Word on Windows for `scripts/export_pdf.ps1` (or export the `.docx` to PDF any other way)
-- Google Chrome or Microsoft Edge for `scripts/md_to_pdf.py` (companion documents only)
-
 ## Contents
 
 | Path | What it is |
@@ -119,3 +138,8 @@ Then ask Claude Code something like "帮我做一份这门课的 cheatsheet" or 
 | `assets/example.md` | A short made-up master (Computer Networks) showing the format |
 | `assets/example_rehearsal.md` | A question list for `rehearse.py` that goes with `example.md` |
 | `assets/preview.png` | One column of `example.md` as printed, enlarged, for this README |
+| `assets/sheet_blurred.png` | Both sides of a real sheet, pixelated, for this README |
+
+## License
+
+[MIT](LICENSE). 脚本和文档按 MIT 许可证发布：可以自由使用、修改和再发布，保留版权声明即可。
