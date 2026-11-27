@@ -7,6 +7,8 @@ A4 横向、5 栏自动分栏、页边距 0、Segoe UI + 微软雅黑 4.5 pt、�
 标题条、精简卡和二星单句的段前都是 0；关掉孤行控制，栏底不再空出几行；
 卡片标题和 Q 行默认不和下一段绑在同一栏：一栏可以停在标题或 Q 行，卡片接着从下一栏顶上开始，栏底不会空出 1–3 行
 （两行的标题条和 Q 行仍然不拆开）。加 --keep-with-next 就恢复旧做法：标题 + Q 行 + 第一条放在同一栏；
+标题和 Q 行可以在 " · " 后面换行（Word 的中文避头尾规则默认不让 · 放在行尾，脚本只改了这一条）；
+Q 行里 "→" 和后面的题号不拆到两行（中间换成不断行空格）；
 栏间距 0.1 cm；正文用 Segoe UI、正常字距（比 Arial 收紧字距更清楚，所占宽度差不多）；行内代码用 Arial Narrow（代码块仍用等宽的 Consolas，DOM 树要靠等宽对齐）。
 
 配色：每张卡按主题上色。标题条是深色底白字，
@@ -281,6 +283,36 @@ _cs.set(qn("w:uri"), "http://schemas.microsoft.com/office/word")
 _cs.set(qn("w:val"), "15")
 _compat.append(_cs)
 
+# ---- 4c. 断行：标题和 Q 行可以在 " · " 后面换行 ----------------------------------------------------------
+# 文档的东亚语言是中文（zh-CN），Word 按中文避头尾规则断行，默认的"不能放行首"和"不能放行尾"两张表里都有 ·，
+# 所以 " · " 前后都不能换行：标题只能断在 "business value" 这种多词关键词中间（实测 66 个标题的第一行
+# 全是这样，最少只填到 54%），Q 行断在 "→" 和题号之间（"④–" 在行尾、"⑥" 到下一行）。
+# 这里写一份自定义表：两张表都和 Word 的默认表一样，只是 · 可以放行尾（仍然不能放行首）。
+NO_LINE_START = "!%),.:;>?]}¢¨°·ˇˉ―‖’”…‰′″›℃∶、。〃〉》」』】〕〗〞︶︺︾﹀﹄﹚﹜﹞！＂％＇），．：；？］｀｜｝～￠"
+NO_LINE_END = "$([{£¥‘“〈《「『【〔〖〝﹙﹛﹝＄（．［｛￡￥"        # Word 默认表在 ¥ 和 ‘ 之间还有一个 ·
+for _tag in ("w:noLineBreaksAfter", "w:noLineBreaksBefore"):
+    for _old in _settings.findall(qn(_tag)):
+        _settings.remove(_old)
+_kins = []
+for _tag, _chars in (("w:noLineBreaksAfter", NO_LINE_END), ("w:noLineBreaksBefore", NO_LINE_START)):
+    _el = OxmlElement(_tag)
+    _el.set(qn("w:lang"), "zh-CN")
+    _el.set(qn("w:val"), _chars)
+    _kins.append(_el)
+# settings 里的顺序：… characterSpacingControl、printTwoOnOne、strictFirstAndLastChars、这两项、savePreviewPicture …
+_prev = [c for c in _settings if c.tag in {qn(t) for t in ("w:characterSpacingControl", "w:printTwoOnOne",
+                                                            "w:strictFirstAndLastChars")}]
+if _prev:
+    _prev[-1].addnext(_kins[0])
+else:
+    _later = {qn(t) for t in ("w:savePreviewPicture", "w:doNotValidateAgainstSchema", "w:saveInvalidXml",
+                              "w:ignoreMixedContent", "w:alwaysShowPlaceholderText", "w:doNotDemarcateInvalidXml",
+                              "w:saveXmlDataOnly", "w:useXSLTWhenSaving", "w:saveThroughXslt", "w:showXMLTags",
+                              "w:alwaysMergeEmptyNamespace", "w:updateFields", "w:hdrShapeDefaults",
+                              "w:footnotePr", "w:endnotePr", "w:compat")}
+    next(c for c in _settings if c.tag in _later).addprevious(_kins[0])
+_kins[0].addnext(_kins[1])
+
 
 # ---- 5. 字体、字号、行距 -------------------------------------------------------------------------
 def set_fonts(rpr, latin=LATIN):
@@ -430,8 +462,15 @@ def format_paragraph(p):
         if KEEP_WITH_NEXT:
             pf.keep_with_next = True
         pf.keep_together = True                     # 两行的 Q 行不拆到两栏（孤行控制已关，否则会被拆开）
-        for r in p.runs:
+        runs = p.runs
+        for k, r in enumerate(runs):
             r.font.color.rgb = RGBColor(0x40, 0x40, 0x40)
+            # "→" 后面换成不断行空格：题号跟着箭头走，不会出现 "→" 在行尾、"③④" 在下一行
+            rt = r.text.replace("→ ", "→ ")
+            if rt.endswith("→") and k + 1 < len(runs) and runs[k + 1].text.startswith(" "):
+                runs[k + 1].text = " " + runs[k + 1].text[1:]
+            if rt != r.text:
+                r.text = rt
     elif t and t[0] in CIRCLED:                     # 要点：悬挂缩进，"① 标签" 着色；标签加粗，序号默认常规字重
         pf.left_indent = Pt(FONT_PT * 1.05)
         pf.first_line_indent = Pt(-FONT_PT * 1.05)

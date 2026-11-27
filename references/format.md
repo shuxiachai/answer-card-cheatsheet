@@ -16,6 +16,7 @@
 > Notes for the student and for future edits — NOT printed (everything before "## 答题卡" is skipped).
 > 考试: date, sheet rules, sections and marks
 > 来源优先级: sample exam + answer guide → review lecture → question bank → Summary pages
+> 不用的来源: <file or folder> — practice questions for another assessment (user's decision, date)
 > 配色: 1=W1 2=W2 3=W3 A=DESIGN   ← recommended: topic n gets {Wn} (see §4)
 > 重建 (run in this folder; the skill's absolute path, every non-default argument):
 >   python <skill>/scripts/check_master.py sheet.md --gap-cm 0.05
@@ -52,7 +53,7 @@ Q: Differences between TCP and UDP? → ①–⑤ · When would you use which? �
 ② 无连接 UDP is a connectionless transport protocol that sends independent datagrams without guaranteeing delivery or order.
 ```
 
-- Title line: starts with `**★★★★ `, whole line inside `**` (printed white on the topic-colour bar in regular weight; `--bold-titles` makes it bold); topic tag in 〔number name〕 (`〔A 答题〕` for a framework card) — the build script colours the card from this number; then Chinese name, then English title — or, easier to find from a question, the English keywords a question would use, separated by ` · ` (`**★★★★ 〔1 传输层〕 TCP 与 UDP TCP vs UDP · reliability · handshake · latency · when to use**`). A title may wrap to two lines; the build keeps it in one column. A colour key such as `{DESIGN}` may precede the line to override.
+- Title line: starts with `**★★★★ `, whole line inside `**` (printed white on the topic-colour bar in regular weight; `--bold-titles` makes it bold); topic tag in 〔number name〕 (`〔A 答题〕` for a framework card) — the build script colours the card from this number; then Chinese name, then English title — or, easier to find from a question, the English keywords a question would use, separated by ` · ` (`**★★★★ 〔1 传输层〕 TCP 与 UDP TCP vs UDP · reliability · handshake · latency · when to use**`). A title may wrap to two lines; the build keeps it in one column and lets it break after a ` · ` as well as between words (§5). A colour key such as `{DESIGN}` may precede the line to override.
 - Q line: `Q: ` + one short cue per sub-question the card answers (usually 2–5, in the sample exam's or question bank's words, paraphrased), each followed by `→` and the point numbers to copy (`①–⑤`, `⑥⑦`); cues separated by ` · `; ≤ 25 English words. Example: `Q: Name the attack → ① · Why encryption does not stop it → ② · Freshness design → ③–⑤`. Chinese notes may follow in （）. A card that is a tool rather than a question (e.g. a template) may use a `用法：…` line instead; it is printed the same way.
 - Points: `①`…`⑦`, a space, a tag, a space, one complete English sentence of 15–30 words (≈ 1 mark). Official marking points first, example last or second-to-last. Keep an official answer guide's own wording even when it makes a sentence longer (up to ≈ 40 words) or a card longer (up to ⑧).
 - Tag: normally a 2–4 character Chinese tag (定义 / 区别 / 原因 / 选择 / 例子 / 局限 …). In a scenario/design framework card the tag is the official English sub-heading with a colon instead (`① Data Sources:`, up to three words). A tag that contains Latin letters (`TCP定义`, `FCFS`, `TLB`) is not recognised and stays uncoloured, so use a Chinese word instead (先来先服务, 快表); 2–4 characters is a target, 5 is fine.
@@ -140,6 +141,11 @@ Tint (table header fill) = 14 % of the colour mixed with white.
 - A4 landscape, margins 0 (argument 4 for cm), 5 newspaper columns, 0.1 cm gap (argument 5 for cm; 0.05 still keeps text off the rule, 0 does not) with a separator rule.
 - The document is marked as Word 2013+ (`compatibilityMode` 15); without it Word lays out in compatibility mode and rounds letter positions to 96-dpi pixels.
 - Every paragraph: exact line height 1.18 × size, normal letter spacing, left aligned, no space before/after, widow/orphan control off (otherwise columns end with empty lines). Leading ★ marks are stripped from the printed text.
+- Line breaks: the document's East Asian language is Chinese. Word's default Chinese line-break lists forbid `·` both at the start and at the end of a line, so a line could never break before or after a ` · `:
+  - titles broke only inside multi-word keywords, and some first lines were only 54 % full;
+  - Q lines broke between `→` and the point numbers.
+
+  The build writes Word's two default lists unchanged, except that `·` may end a line (it still never starts one). In Q lines the space after `→` is a no-break space, so the numbers stay with their arrow.
 - The card title and the Q line are not split across columns when they wrap to two lines, but a column may end right after either of them: the card goes on at the top of the next column, so no lines are left empty at column bottoms. Build with `--keep-with-next` to keep title + Q line + first point in one column instead. A code block is kept in one column. Title bars are indented 2 pt on both sides, because Word's paragraph shading reaches ≈ 1.7 pt beyond the text and would otherwise cross the separator.
 - Hanging indent: points ≈ 1.05 × size; mini cards and one-liners ≈ 1.6 × size.
 - Tables: 100 % width, 0.25 pt grey (808080) borders, ≈ 0.05 cm cell padding.

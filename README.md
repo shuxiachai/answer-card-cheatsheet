@@ -25,6 +25,7 @@ Then ask Claude Code something like "帮我做一份这门课的 cheatsheet" or 
    - 复习课、官方模拟卷和答案或评分指南、题库：最重要，卡片句子尽量用评分指南里的关键词。
    - 各周课件（特别是 Summary 页）、tutorial、quiz。
    - 同学的 cheatsheet 只用来查漏，不照抄。
+   - 说清哪些练习题属于这场考试。别的考核（比如口试、平时测验）的题库不要给，或者明确说不用；Claude 会把不用的资料记在母版开头。
 2. **说清要求**，例如「只用来答场景题，选择题我另外背」「不要留白」。可以直接用下面的[第一条消息模板](#第一条消息模板)。
 3. **Claude 会做的**
    - 每道可能的考题一张答题卡：标题是中文名加题目里会出现的英文关键词；Q 行写问法和要抄第几条；每条要点是一句完整的英文，约 1 分。
@@ -33,6 +34,7 @@ Then ask Claude Code something like "帮我做一份这门课的 cheatsheet" or 
 4. **你要检查的**
    - 每句能不能直接抄，有没有看不懂的缩写。
    - 拿官方模拟卷和题库演练一遍：每个小问都能在表上找到要抄的句子，找不到的让 Claude 补。Claude 会用 `rehearse.py` 只拿表上的原句、只换 `[ ]` 里的词拼出每个小问的答案，并检查题目里的英文词能不能在卡片标题里找到、Q 行有没有指到要抄的条目。
+   - 题库对完以后，还可以让 Claude 拿课件和 tutorial 里的讨论题再查一遍覆盖面。
    - 想多练可以让 Claude 出模拟卷和答案：答案标出每句抄自哪张卡（【原样】【换槽】【题干句】【自写一句】）。选择题不放在表上时，可以另做一份选择题讲义，考前背熟。
    - 想确认表上的内容都出自课程（比如同学说有课本里没有的内容）：让 Claude 做出处核对，它会列出课程文件里找不到的词和句子，查得到的给出文件和页码。
    - 改内容时让 Claude 改 `.md`，不要直接改 `.docx`。
@@ -54,6 +56,7 @@ Then ask Claude Code something like "帮我做一份这门课的 cheatsheet" or 
 - 题库：<路径>
 - 各周课件：<路径>
 - 同学的 cheatsheet（只用来查漏，不照抄）：<路径>
+- 不用的资料（例如别的考核的题库）：<路径或名称>
 
 要求：
 - 表上只放大题（场景题）的内容；选择题另做一份复习讲义，中英穿插讲，例题纯英文
@@ -97,7 +100,7 @@ Then ask Claude Code something like "帮我做一份这门课的 cheatsheet" or 
 | `references/fitting.md` | How to land on two pages: column-bottom gaps, measured compression ladder, too little content, trimming, pitfalls |
 | `references/companions.md` | Optional practice paper and answer key (every sentence labelled by how it was made), MCQ handout, review handout |
 | `scripts/check_master.py` | Checks the master before building (colours, Q-line references, numbering, tags, lengths, figures) and every copyable sentence (Chinese, It/This openings, source words, past tense that narrates one case, exam-technique words, slot length), and points no Q line points to; counts sentences with and without `[slots]`; `--similar` lists near-duplicate sentences |
-| `scripts/build_cheatsheet.py` | Markdown master → `.docx` (`python build_cheatsheet.py sheet.md [out.docx] [font_pt=4.5] [margin_cm=0] [gap_cm=0.1] [--keep-with-next] [--bold-titles]`); a column may end with a card's title or Q line unless `--keep-with-next` is given; figures via `![60%](fig.png)` |
+| `scripts/build_cheatsheet.py` | Markdown master → `.docx` (`python build_cheatsheet.py sheet.md [out.docx] [font_pt=4.5] [margin_cm=0] [gap_cm=0.1] [--keep-with-next] [--bold-titles]`); a column may end with a card's title or Q line unless `--keep-with-next` is given; titles and Q lines may break after ` · `, and `→` stays with its point numbers; figures via `![60%](fig.png)` |
 | `scripts/export_pdf.ps1` | Word export of the `.docx` to PDF (relative or absolute paths); uses Microsoft Print to PDF for its own Word session so small text is evenly spaced |
 | `scripts/measure_layout.py` | Page count, spare lines, uneven letter spacing, column-bottom gaps, columns that end with a card title or Q line, title line counts and wrapped Q lines, short last lines, where given text sits, and with `--cards sheet.md` where every card starts, which `--update doc.md` writes into documents that cite card positions (font size and margin detected from the PDF) |
 | `scripts/rehearse.py` | Answers every sub-question of a question list with the sheet's own sentences, changing only the `[slots]`; checks cards, points, Q lines and whether the question's words are in the card's title; lists points no question used |
